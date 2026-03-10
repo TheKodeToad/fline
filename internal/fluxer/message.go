@@ -1,0 +1,47 @@
+package fluxer
+
+import (
+	"github.com/TheKodeToad/fline/internal/discord"
+	"github.com/disgoorg/snowflake/v2"
+)
+
+type Reaction struct {
+	Emoji discord.Emoji `json:"emoji"`
+	Count int           `json:"count"`
+	Me    bool          `json:"me"`
+}
+
+type Message struct {
+	ID               snowflake.ID              `json:"id"`
+	ChannelID        snowflake.ID              `json:"channel_id"`
+	Author           UserPartial               `json:"author"`
+	Content          string                    `json:"content"`
+	Timestamp        string                    `json:"timestamp"`
+	EditedTimestamp  *string                   `json:"edited_timestamp"`
+	TTS              bool                      `json:"tts"`
+	MentionEveryone  bool                      `json:"mention_everyone"`
+	Mentions         []UserPartial             `json:"mentions"`
+	MentionRoles     []snowflake.ID            `json:"mention_roles"`
+	MentionChannels  []discord.ChannelMention  `json:"mention_channels"`
+	Attachments      []discord.Attachment      `json:"attachments"`
+	Embeds           []discord.Embed           `json:"embeds"`
+	Reactions        []Reaction                `json:"reactions"`
+	Nonce            *string                   `json:"nonce,omitempty"`
+	Pinned           bool                      `json:"pinned"`
+	WebhookID        *snowflake.ID             `json:"webhook_id"`
+	Type             discord.MessageType       `json:"type"`
+	Flags            discord.MessageFlags      `json:"flags"`
+	MessageReference *discord.MessageReference `json:"message_reference"`
+	// TODO: referenced message, resolved data?
+}
+
+type MessageCreate struct {
+	Content          *string                   `json:"content,omitempty"`
+	Nonce            *string                   `json:"nonce,omitempty"`
+	TTS              *bool                     `json:"tts,omitempty"`
+	Embeds           []discord.Embed           `json:"embeds,omitempty"`
+	AllowedMentions  *discord.AllowedMentions  `json:"allowed_mentions,omitempty"`
+	MessageReference *discord.MessageReference `json:"message_reference,omitempty"`
+	Flags            int                       `json:"flags"`
+	EnforceNonce     *bool                     `json:"enforce_nonce,omitempty"`
+}
