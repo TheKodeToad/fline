@@ -59,23 +59,26 @@ func main() {
 	}
 
 	go func() {
-		exitSignal := make(chan os.Signal, 1)
-		signal.Notify(exitSignal, syscall.SIGTERM, syscall.SIGINT)
-
-		<-exitSignal
-
-		slog.Info("goodbye")
-	
-		gateway.Shutdown()
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
-		server.Shutdown(ctx)
-		cancel()
+		err = server.Serve(listener)
+		if err != http.ErrServerClosed {
+			slog.Error("error serving connections", slog.Any("err", err))
+			os.Exit(1)
+		}
 	}()
 
-	err = server.Serve(listener)
-	if err != http.ErrServerClosed {
-		slog.Error("error serving connections", slog.Any("err", err))
-		os.Exit(1)
-	}
+	exitSignal := make(chan os.Signal, 1)
+	signal.Notify(exitSignal, syscall.SIGTERM, syscall.SIGINT)
+
+	<-exitSignal
+
+	slog.Info("goodbye")
+
+	slog.Info("shutting down HTTP server")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	server.Shutdown(ctx)
+	cancel()
+
+	slog.Info("shutting down gateway")
+	gateway.Shutdown()
+
 }

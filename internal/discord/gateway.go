@@ -31,9 +31,25 @@ type GatewayInfo struct {
 	} `json:"session_start_limit"`
 }
 
+type GatewayOpcode uint
+
+var (
+	GatewayOpDispatch            GatewayOpcode = 0
+	GatewayOpHeartbeat           GatewayOpcode = 1
+	GatewayOpIdentify            GatewayOpcode = 2
+	GatewayOpPresenceUpdate      GatewayOpcode = 3
+	GatewayOpVoiceStateUpdate    GatewayOpcode = 4
+	GatewayOpResume              GatewayOpcode = 6
+	GatewayOpReconnect           GatewayOpcode = 7
+	GatewayOpRequestGuildMembers GatewayOpcode = 8
+	GatewayOpInvalidSession      GatewayOpcode = 9
+	GatewayOpHello               GatewayOpcode = 10
+	GatewayOpHeartbeatAck        GatewayOpcode = 11
+)
+
 // NOTE: Fluxer's structure is identical.
 type Packet struct {
-	Opcode      int             `json:"op"`
+	Opcode      GatewayOpcode   `json:"op"`
 	Data        json.RawMessage `json:"d"`
 	SequenceNum int             `json:"s"`
 	Event       string          `json:"t"`
