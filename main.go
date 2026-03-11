@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	fine "github.com/TheKodeToad/fine/internal"
 	"github.com/TheKodeToad/fine/internal/api"
 	"github.com/TheKodeToad/fine/internal/config"
 	"github.com/TheKodeToad/fine/internal/gateway"
@@ -35,7 +36,7 @@ func main() {
 	router.Mount("/api", api.Routes(&conf))
 
 	var gateway gateway.Gateway
-	router.Get("/gateway", func(w http.ResponseWriter, r *http.Request) {
+	router.Get(fine.GatewayPath, func(w http.ResponseWriter, r *http.Request) {
 		gateway.ServeHTTP(&conf, w, r)
 	})
 

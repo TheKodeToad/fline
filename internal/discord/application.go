@@ -24,6 +24,7 @@ type Application struct {
 	BotPublic           bool               `json:"bot_public"`
 	BotRequireCodeGrant bool               `json:"bot_require_code_grant"`
 	Bot                 *User              `json:"bot"`
+	Owner               *User              `json:"owner,omitempty"`
 	Flags               ApplicationFlags   `json:"flags"`
 	VerifyKey           string             `json:"verify_key"`
 	RedirectURIs        *[]string          `json:"redirect_uris,omitempty"`

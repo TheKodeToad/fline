@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	fine "github.com/TheKodeToad/fine/internal"
 	"github.com/TheKodeToad/fine/internal/config"
 	"github.com/TheKodeToad/fine/internal/discord"
 	"github.com/go-chi/chi/v5"
@@ -30,7 +31,7 @@ func gatewayRoutes(conf *config.Config, client http.Client) chi.Router {
 			panic(fmt.Errorf("failed to decode fluxer gateway info response: %w", err))
 		}
 
-		info.URL = "ws://" + r.Host + "/gateway"
+		info.URL = fine.GatewayURL(r.Host)
 
 		w.Header().Add("Content-Type", "application/json")
 		err = json.NewEncoder(w).Encode(info)

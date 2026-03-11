@@ -18,18 +18,28 @@ func BotToDiscord(bot fluxer.Bot) discord.User {
 	}
 }
 
-func ApplicationToDiscord(app fluxer.Application) discord.Application {
-	flags := discord.ApplicationGatewayPresence |
-		discord.ApplicationGatewayGuildMembers |
-		discord.ApplicationGatewayMessageContent
+// IntrinsicFluxerApplicationFlags contains the Discord flags apps on Fluxer intrinsically have the equivilent of.
+// NOTE: Fluxer is yet to add any application flags of its own as far as I can tell, so converting Fluxer flags to Discord is as simple as just using these.
+var IntrinsicFluxerApplicationFlags = discord.ApplicationGatewayPresence |
+	discord.ApplicationGatewayGuildMembers |
+	discord.ApplicationGatewayMessageContent
 
+func ApplicationToDiscord(app fluxer.Application) discord.Application {
 	result := discord.Application{
-		ID:                   app.ID,
-		Name:                 app.Name,
-		Icon:                 app.Icon,
-		BotPublic:            app.BotPublic,
+		ID:                  app.ID,
+		Name:                app.Name,
+		Icon:                app.Icon,
+		BotPublic:           app.BotPublic,
 		BotRequireCodeGrant: app.BotRequireCodeGrant,
-		Flags:                flags,
+		Flags:               IntrinsicFluxerApplicationFlags,
+		Owner: &discord.User{
+			ID:            1130650140672000000,
+			Username:      "Hampus",
+			Discriminator: "0001",
+			GlobalName:    misc.New("Hampus"),
+			Avatar:        misc.New("c4c8b5d0"),
+			Flags:         misc.New(discord.UserFlags(1)),
+		},
 	}
 
 	if app.Bot != nil {

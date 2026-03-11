@@ -1,6 +1,10 @@
 package discord
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/disgoorg/snowflake/v2"
+)
 
 const (
 	GatewayClosedUnknownError         = 4000
@@ -47,23 +51,32 @@ var (
 	GatewayOpHeartbeatAck        GatewayOpcode = 11
 )
 
-func IsKnownGatewayOpcode(op GatewayOpcode) bool {
+func (op GatewayOpcode) String() string {
 	switch op {
-	case
-		GatewayOpDispatch,
-		GatewayOpHeartbeat,
-		GatewayOpIdentify,
-		GatewayOpPresenceUpdate,
-		GatewayOpVoiceStateUpdate,
-		GatewayOpResume,
-		GatewayOpReconnect,
-		GatewayOpRequestGuildMembers,
-		GatewayOpInvalidSession,
-		GatewayOpHello,
-		GatewayOpHeartbeatAck:
-		return true
+	case GatewayOpDispatch:
+		return "Dispatch"
+	case GatewayOpHeartbeat:
+		return "Heartbeat"
+	case GatewayOpIdentify:
+		return "Identify"
+	case GatewayOpPresenceUpdate:
+		return "PresenceUpdate"
+	case GatewayOpVoiceStateUpdate:
+		return "VoiceStateUpdate"
+	case GatewayOpResume:
+		return "Resume"
+	case GatewayOpReconnect:
+		return "Reconnect"
+	case GatewayOpRequestGuildMembers:
+		return "RequestGuildMembers"
+	case GatewayOpInvalidSession:
+		return "InvalidSession"
+	case GatewayOpHello:
+		return "Hello"
+	case GatewayOpHeartbeatAck:
+		return "HeartbeatAck"
 	default:
-		return false
+		return ""
 	}
 }
 
@@ -71,6 +84,27 @@ func IsKnownGatewayOpcode(op GatewayOpcode) bool {
 type Packet struct {
 	Opcode      GatewayOpcode   `json:"op"`
 	Data        json.RawMessage `json:"d"`
-	SequenceNum int             `json:"s"`
-	Event       string          `json:"t"`
+	SequenceNum *int            `json:"s,omitempty"`
+	Event       string          `json:"t,omitempty"`
+}
+
+type ReadyEventApplication struct {
+	ID    snowflake.ID     `json:"id"`
+	Flags ApplicationFlags `json:"flags"`
+}
+
+type ReadyEvent struct {
+	V      int  `json:"v"`
+	User   User `json:"user"`
+	Guilds []struct {
+		ID          snowflake.ID `json:"id"`
+		Unavailable bool         `json:"unavailable"`
+	} `json:"guilds"`
+	SessionID        string                `json:"session_id"`
+	ResumeGatewayURL string                `json:"resume_gateway_url"`
+	Shard            *[2]int               `json:"shard,omitempty"`
+	Application      ReadyEventApplication `json:"application"`
+	// NOTE: this is just an (undocumented) empty array Discord keeps for backwards compatibility.
+	// Without this Eris will not like the packet.
+	PrivateChannels [0]struct{} `json:"private_channels"`
 }

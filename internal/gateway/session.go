@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 
+	fine "github.com/TheKodeToad/fine/internal"
 	"github.com/TheKodeToad/fine/internal/config"
+	"github.com/TheKodeToad/fine/internal/convert"
 	"github.com/TheKodeToad/fine/internal/discord"
+	"github.com/TheKodeToad/fine/internal/fluxer"
 	"github.com/TheKodeToad/fine/internal/misc"
 	"github.com/gorilla/websocket"
 )
@@ -69,7 +73,15 @@ func setupWSChannels(conn *websocket.Conn) wsChannels {
 	return wsChannels{read, readErr, write, writeErr}
 }
 
+type sessionInfo struct {
+	// host contains the host header in the initial request.
+	host string
+	// apiVersion contains the version query parameter in the original request.
+	apiVersion int
+}
+
 type session struct {
+	info       sessionInfo
 	clientConn *websocket.Conn
 	fluxerConn *websocket.Conn
 	client     wsChannels
@@ -84,6 +96,26 @@ func startSession(conf *config.Config, w http.ResponseWriter, r *http.Request) (
 
 	slog.Debug("starting websocket session")
 
+	versionStr := r.URL.Query().Get("v")
+	apiVersion, err := strconv.Atoi(versionStr)
+	if err != nil {
+		// FIXME: this should wait for a response!
+		clientCloseMsgErr := clientConn.WriteMessage(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseInternalServerErr, ""),
+		)
+		if clientCloseMsgErr != nil {
+			clientCloseMsgErr = fmt.Errorf("failed to write close message to client: %w", clientCloseMsgErr)
+		}
+
+		clientCloseErr := clientConn.Close()
+		if clientCloseErr != nil {
+			clientCloseErr = fmt.Errorf("failed to close client: %w", clientCloseErr)
+		}
+
+		return session{}, errors.Join(clientCloseMsgErr, clientCloseErr)
+	}
+
 	fluxerURL := misc.New(*conf.FluxerGatewayURL)
 	fluxerQuery := fluxerURL.Query()
 	fluxerQuery.Add("v", conf.FluxerAPIVersion)
@@ -93,6 +125,7 @@ func startSession(conf *config.Config, w http.ResponseWriter, r *http.Request) (
 	if err != nil {
 		fluxerConnErr := fmt.Errorf("failed to connect to fluxer: %w", err)
 
+		// FIXME: this should wait for a response!
 		clientCloseMsgErr := clientConn.WriteMessage(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(
@@ -116,22 +149,49 @@ func startSession(conf *config.Config, w http.ResponseWriter, r *http.Request) (
 	clientConn.SetCloseHandler(func(int, string) error { return nil })
 	fluxerConn.SetCloseHandler(func(int, string) error { return nil })
 
-	var s session
-
-	s.clientConn = clientConn
-	s.fluxerConn = fluxerConn
-
-	s.client = setupWSChannels(clientConn)
-	s.fluxer = setupWSChannels(fluxerConn)
-
-	return s, nil
+	return session{
+		info: sessionInfo{
+			host:       r.Host,
+			apiVersion: apiVersion,
+		},
+		clientConn: clientConn,
+		fluxerConn: fluxerConn,
+		client:     setupWSChannels(clientConn),
+		fluxer:     setupWSChannels(fluxerConn),
+	}, nil
 }
 
-// packetToFluxer converts from a Discord packet to a Fluxer packet.
-func packetToFluxer(packet discord.Packet) (discord.Packet, bool) {
-	fmt.Printf("converting packet to fluxer %+v %s\n", packet, string(packet.Data))
+func logPacket(packet discord.Packet) []any {
+	var result []any
 
-	return discord.Packet{}, false
+	if packet.SequenceNum != nil {
+		result = append(
+			result,
+			slog.Int("seq", *packet.SequenceNum),
+		)
+	}
+
+	result = append(
+		result,
+		slog.Any("opcode", packet.Opcode),
+		slog.String("event", packet.Event),
+		slog.String("data", string(packet.Data)),
+	)
+
+	return result
+}
+
+// errNonConvertiblePacket signals that the packet is not convertible and nothing should be sent to the destination.
+var errNonConvertiblePacket = errors.New("non-convertible packet")
+
+// packetToFluxer converts from a Discord packet to a Fluxer packet.
+func packetToFluxer(packet discord.Packet) (discord.Packet, error) {
+	switch packet.Opcode {
+	case discord.GatewayOpHeartbeat, discord.GatewayOpIdentify:
+		return packet, nil
+	default:
+		return discord.Packet{}, errNonConvertiblePacket
+	}
 }
 
 func (s *session) handleClientMsg(msg wsMessage) error {
@@ -139,45 +199,78 @@ func (s *session) handleClientMsg(msg wsMessage) error {
 		return nil
 	}
 
-	var packet discord.Packet
-	err := json.Unmarshal(msg.data, &packet)
+	var inPacket discord.Packet
+	err := json.Unmarshal(msg.data, &inPacket)
 	if err != nil {
-		slog.Debug("failed to unmarshal client packet", slog.Any("err", err))
 		s.client.write <- wsMessage{
 			websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.CloseUnsupportedData, ""),
+			websocket.FormatCloseMessage(discord.GatewayClosedDecodeError, ""),
 		}
-		return nil
+		return fmt.Errorf("failed to unmarshal client packet: %w", err)
 	}
 
-	packet, keep := packetToFluxer(packet)
-	if !keep {
+	slog.Debug("received discord packet", logPacket(inPacket)...)
+
+	outPacket, err := packetToFluxer(inPacket)
+	if errors.Is(err, errNonConvertiblePacket) {
 		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to convert packet to fluxer: %w", err)
 	}
 
-	newData, err := json.Marshal(packet)
+	newData, err := json.Marshal(outPacket)
 	if err != nil {
-		slog.Warn("failed to marshal modified client packet", slog.Any("err", err))
-		return err
+		return fmt.Errorf("failed to marshal modified client packet: %w", err)
 	}
 
-	s.client.write <- wsMessage{
+	s.fluxer.write <- wsMessage{
 		websocket.TextMessage,
 		newData,
 	}
 	return nil
 }
 
-// packetToDiscord converts from a Fluxer packet to a Discord packet.
-func packetToDiscord(packet discord.Packet) (discord.Packet, bool) {
-	fmt.Printf("converting packet to discord %+v %s\n", packet, string(packet.Data))
+func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (json.RawMessage, error) {
+	switch name {
+	case "READY":
+		var inEvent fluxer.ReadyEvent
 
-	switch packet.Opcode {
-	case discord.GatewayOpHello:
-		return packet, true
+		err := json.Unmarshal(payload, &inEvent)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		// do libraries actually care about this?
+		// for now just reassuringly echo back the version that was connected with...
+		inEvent.Version = info.apiVersion
+
+		if inEvent.ResumeGatewayURL == nil {
+			inEvent.ResumeGatewayURL = misc.New(fine.GatewayURL(info.host))
+		}
+
+		outEvent := convert.ReadyEventToDiscord(inEvent)
+		return json.Marshal(outEvent)
+	default:
+		return json.RawMessage{}, errNonConvertiblePacket
 	}
+}
 
-	return discord.Packet{}, false
+func packetToDiscord(packet discord.Packet, info sessionInfo) (discord.Packet, error) {
+	switch packet.Opcode {
+	case discord.GatewayOpHello, discord.GatewayOpHeartbeatAck, discord.GatewayOpInvalidSession:
+		// passthrough
+		return packet, nil
+	case discord.GatewayOpDispatch:
+		data, err := eventToDiscord(packet.Event, packet.Data, info)
+		if err != nil {
+			return discord.Packet{}, fmt.Errorf("failed to convert event to discord: %w", err)
+		}
+
+		packet.Data = data
+		return packet, nil
+	default:
+		return discord.Packet{}, errNonConvertiblePacket
+	}
 }
 
 func (s *session) handleFluxerMsg(msg wsMessage) error {
@@ -185,9 +278,10 @@ func (s *session) handleFluxerMsg(msg wsMessage) error {
 		return nil
 	}
 
-	var packet discord.Packet
-	err := json.Unmarshal(msg.data, &packet)
+	var inPacket discord.Packet
+	err := json.Unmarshal(msg.data, &inPacket)
 	if err != nil {
+		// FIXME: this should wait for a response!
 		s.client.write <- wsMessage{
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseUnsupportedData, ""),
@@ -195,12 +289,16 @@ func (s *session) handleFluxerMsg(msg wsMessage) error {
 		return fmt.Errorf("failed to unmarshal fluxer packet: %w", err)
 	}
 
-	packet, keep := packetToDiscord(packet)
-	if !keep {
+	slog.Debug("received fluxer packet", logPacket(inPacket)...)
+
+	outPacket, err := packetToDiscord(inPacket, s.info)
+	if errors.Is(err, errNonConvertiblePacket) {
 		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to convert packet to discord: %w", err)
 	}
 
-	newData, err := json.Marshal(packet)
+	newData, err := json.Marshal(outPacket)
 	if err != nil {
 		slog.Debug("failed to marshal modified fluxer packet", slog.Any("err", err))
 		return nil
