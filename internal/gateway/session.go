@@ -34,9 +34,8 @@ var errWriteChanClosed = errors.New("websocket write channel closed")
 // setupWSChannels sets up some channels and spawns goroutines handling them.
 func setupWSChannels(conn *websocket.Conn) wsChannels {
 	read := make(chan wsMessage)
-	readErr := make(chan error)
+	readErr := make(chan error, 1)
 
-	// FIXME: goroutine leak
 	go func() {
 		for {
 			msgType, msg, err := conn.ReadMessage()
@@ -45,12 +44,13 @@ func setupWSChannels(conn *websocket.Conn) wsChannels {
 				return
 			}
 
+			// FIXME: maybe in theory this could leak the goroutine?
 			read <- wsMessage{msgType, msg}
 		}
 	}()
 
 	write := make(chan wsMessage, 256)
-	writeErr := make(chan error)
+	writeErr := make(chan error, 1)
 
 	go func() {
 		for {
