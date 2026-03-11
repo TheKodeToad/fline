@@ -47,6 +47,26 @@ var (
 	GatewayOpHeartbeatAck        GatewayOpcode = 11
 )
 
+func IsKnownGatewayOpcode(op GatewayOpcode) bool {
+	switch op {
+	case
+		GatewayOpDispatch,
+		GatewayOpHeartbeat,
+		GatewayOpIdentify,
+		GatewayOpPresenceUpdate,
+		GatewayOpVoiceStateUpdate,
+		GatewayOpResume,
+		GatewayOpReconnect,
+		GatewayOpRequestGuildMembers,
+		GatewayOpInvalidSession,
+		GatewayOpHello,
+		GatewayOpHeartbeatAck:
+		return true
+	default:
+		return false
+	}
+}
+
 // NOTE: Fluxer's structure is identical.
 type Packet struct {
 	Opcode      GatewayOpcode   `json:"op"`

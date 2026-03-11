@@ -6,15 +6,18 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"reflect"
 	"sync"
 
 	"github.com/TheKodeToad/fine/internal/config"
-	"github.com/TheKodeToad/fine/internal/convert"
 	"github.com/TheKodeToad/fine/internal/discord"
 	"github.com/TheKodeToad/fine/internal/misc"
 	"github.com/gorilla/websocket"
 )
+
+type sessionHandle struct {
+	shutdown         chan<- struct{}
+	shutdownFinished <-chan struct{}
+}
 
 // Gateway keeps track of gateway sessions and can be shut down with Shutdown.
 type Gateway struct {
@@ -25,13 +28,52 @@ type Gateway struct {
 var upgrader websocket.Upgrader
 
 func (g *Gateway) ServeHTTP(conf *config.Config, w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+	shutdown := make(chan struct{})
+	shutdownFinished := make(chan struct{}, 1)
+	defer func() { shutdownFinished <- struct{}{} }()
+
+	clientConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		panic(fmt.Errorf("failed to upgrade to websocket: %w", err))
 	}
+	defer clientConn.Close()
 
-	slog.Debug("received websocket connection")
-	handleSession(conf, g, conn)
+	slog.Debug("starting websocket session")
+
+	fluxerURL := misc.New(*conf.FluxerGatewayURL)
+	fluxerQuery := fluxerURL.Query()
+	fluxerQuery.Add("v", conf.FluxerAPIVersion)
+	fluxerURL.RawQuery = fluxerQuery.Encode()
+
+	fluxerConn, _, err := websocket.DefaultDialer.Dial(fluxerURL.String(), nil)
+	if err != nil {
+		slog.Warn("connection to fluxer gateway failed", slog.Any("err", err))
+
+		clientCloseMsgErr := clientConn.WriteMessage(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(
+				discord.GatewayClosedUnknownError,
+				"Connection to Fluxer gateway failed.",
+			),
+		)
+		clientCloseErr := clientConn.Close()
+		if clientCloseMsgErr != nil || clientCloseErr != nil {
+			slog.Warn(
+				"closing client connection failed",
+				slog.Any("err", errors.Join(clientCloseMsgErr, clientCloseErr)),
+			)
+		}
+
+		return
+	}
+	defer fluxerConn.Close()
+
+	g.registerSession(sessionHandle{shutdown, shutdownFinished})
+	defer g.unregisterSession(sessionHandle{shutdown, shutdownFinished})
+
+	handleSession(clientConn, fluxerConn, shutdown)
+
+	slog.Debug("websocket session finished")
 }
 
 func (g *Gateway) registerSession(sesh sessionHandle) {
@@ -54,17 +96,19 @@ func (g *Gateway) unregisterSession(sesh sessionHandle) {
 }
 
 func (g *Gateway) Shutdown() {
+	// NOTE: unfortunately we can't defer the unlock as if we only unlock it after wg.Wait() it causes a deadlock -
+	// we are waiting for the sessions to shut down which are waiting
 	g.sessionsLock.Lock()
-	defer g.sessionsLock.Unlock()
 
 	if g.sessions == nil {
+		g.sessionsLock.Unlock()
 		return
 	}
 
 	var wg sync.WaitGroup
 
+	wg.Add(len(g.sessions))
 	for sesh := range g.sessions {
-		wg.Add(1)
 		go func() {
 			sesh.shutdown <- struct{}{}
 			<-sesh.shutdownFinished
@@ -73,13 +117,9 @@ func (g *Gateway) Shutdown() {
 	}
 
 	g.sessions = nil
+	g.sessionsLock.Unlock()
 
 	wg.Wait()
-}
-
-type sessionHandle struct {
-	shutdown         chan<- struct{}
-	shutdownFinished <-chan struct{}
 }
 
 type wsMessage struct {
@@ -87,7 +127,7 @@ type wsMessage struct {
 	data        []byte
 }
 
-type wsIO struct {
+type wsChannels struct {
 	read     <-chan wsMessage
 	readErr  <-chan error
 	write    chan<- wsMessage
@@ -96,11 +136,12 @@ type wsIO struct {
 
 var errWriteChanClosed = errors.New("websocket write channel closed")
 
-// wsHandleIO sets up some channels and spawns goroutines handling them.
-func wsHandleIO(conn *websocket.Conn) wsIO {
+// setupWSChannels sets up some channels and spawns goroutines handling them.
+func setupWSChannels(conn *websocket.Conn) wsChannels {
 	read := make(chan wsMessage)
 	readErr := make(chan error)
 
+	// FIXME: goroutine leak
 	go func() {
 		for {
 			msgType, msg, err := conn.ReadMessage()
@@ -134,60 +175,23 @@ func wsHandleIO(conn *websocket.Conn) wsIO {
 		}
 	}()
 
-	return wsIO{read, readErr, write, writeErr}
+	return wsChannels{read, readErr, write, writeErr}
 }
 
-// handleSession starts a session and blocks until it is done.
-// The connection is closed at the end.
-func handleSession(conf *config.Config, gateway *Gateway, clientConn *websocket.Conn) {
-	fluxerURL := misc.New(*conf.FluxerGatewayURL)
-	fluxerQuery := fluxerURL.Query()
-	fluxerQuery.Add("v", conf.FluxerAPIVersion)
-	fluxerURL.RawQuery = fluxerQuery.Encode()
-
-	fluxerConn, _, err := websocket.DefaultDialer.Dial(fluxerURL.String(), nil)
-	if err != nil {
-		clientConn.Close()
-
-		slog.Warn("connection to fluxer gateway failed", slog.Any("err", err))
-
-		clientCloseMsgErr := clientConn.WriteMessage(
-			websocket.CloseMessage,
-			websocket.FormatCloseMessage(
-				discord.GatewayClosedUnknownError,
-				"Connection to Fluxer gateway failed.",
-			),
-		)
-		clientCloseErr := clientConn.Close()
-		if clientCloseMsgErr != nil || clientCloseErr != nil {
-			slog.Warn(
-				"closing client connection failed",
-				slog.Any("err", errors.Join(clientCloseMsgErr, clientCloseErr)),
-			)
-		}
-
-		return
-	}
-
-	shutdown := make(chan struct{})
-	shutdownFinished := make(chan struct{}, 1)
-
-	gateway.registerSession(sessionHandle{shutdown, shutdownFinished})
-	defer gateway.unregisterSession(sessionHandle{shutdown, shutdownFinished})
-
+func handleSession(clientConn *websocket.Conn, fluxerConn *websocket.Conn, shutdown <-chan struct{}) {
 	// allow both sides to naturally perform the close handshake
 	clientConn.SetCloseHandler(func(int, string) error { return nil })
 	fluxerConn.SetCloseHandler(func(int, string) error { return nil })
 
-	client := wsHandleIO(clientConn)
-	fluxer := wsHandleIO(fluxerConn)
+	client := setupWSChannels(clientConn)
+	fluxer := setupWSChannels(fluxerConn)
 
 loop:
 	for {
 		select {
 		case msg := <-client.read:
 			if msg.messageType != websocket.TextMessage {
-				break // out of select
+				continue loop
 			}
 
 			var packet discord.Packet
@@ -201,7 +205,21 @@ loop:
 				break loop
 			}
 
-			fmt.Printf("received from client %+v\n", packet)
+			packet, keep := packetToFluxer(packet)
+			if !keep {
+				continue loop
+			}
+
+			newData, err := json.Marshal(packet)
+			if err != nil {
+				slog.Debug("failed to marshal modified client packet", slog.Any("err", err))
+				continue loop
+			}
+
+			client.write <- wsMessage{
+				websocket.TextMessage,
+				newData,
+			}
 		case err := <-client.readErr:
 			var closeErr *websocket.CloseError
 			if errors.As(err, &closeErr) {
@@ -219,7 +237,7 @@ loop:
 			break loop
 		case msg := <-fluxer.read:
 			if msg.messageType != websocket.TextMessage {
-				break // out of select
+				continue loop
 			}
 
 			var packet discord.Packet
@@ -233,15 +251,27 @@ loop:
 				break loop
 			}
 
-			fmt.Printf("received from fluxer gateway %+v\n", packet)
+			packet, keep := packetToDiscord(packet)
+			if !keep {
+				continue loop
+			}
+
+			newData, err := json.Marshal(packet)
+			if err != nil {
+				slog.Debug("failed to marshal modified fluxer gateway packet", slog.Any("err", err))
+				continue loop
+			}
+
+			client.write <- wsMessage{
+				websocket.TextMessage,
+				newData,
+			}
 		case err := <-fluxer.readErr:
 			var closeErr *websocket.CloseError
 			if errors.As(err, &closeErr) {
 				fluxer.write <- wsMessage{
 					websocket.CloseMessage,
-					websocket.FormatCloseMessage(
-						convert.GatewayCloseToDiscord(closeErr.Code, closeErr.Text),
-					),
+					websocket.FormatCloseMessage(closeErr.Code, closeErr.Text),
 				}
 			} else {
 				slog.Warn("error reading from fluxer gateway; ending session", slog.Any("err", err))
@@ -278,9 +308,4 @@ loop:
 			slog.Warn("error writing to fluxer gateway after session ended", slog.Any("err", err))
 		}
 	}
-
-	clientConn.Close()
-	fluxerConn.Close()
-
-	shutdownFinished <- struct{}{}
 }
