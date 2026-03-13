@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -47,6 +48,10 @@ func convFluxerErrorResponse(resp *http.Response) (any, error) {
 		return nil, nil
 	}
 
+	if resp.Header.Get("Content-Type") != "application/json" {
+		return apiError{status: resp.StatusCode}, nil
+	}
+
 	var errObject fluxer.APIError
 	err := json.NewDecoder(resp.Body).Decode(&errObject)
 	if err != nil {
@@ -57,6 +62,34 @@ func convFluxerErrorResponse(resp *http.Response) (any, error) {
 		APIError: convert.APIErrorToDiscord(errObject),
 		status:   resp.StatusCode,
 	}, nil
+}
+
+// makeUnmarshalErrorResponse creates an approapriate response if the passed error indicates malformed JSON.
+// If it does not, nil is returned and it is probably better to treat it as an internal server error.
+func makeUnmarshalErrorResponse(err error) any {
+	var syntaxErr *json.SyntaxError
+	if errors.As(err, &syntaxErr) {
+		return apiError{
+			APIError: discord.APIError{
+				Code: discord.APIErrorRequestBodyHasInvalidJSON,
+				Message: "The request body contains invalid JSON.",
+			},
+			status: http.StatusBadRequest,
+		}
+	}
+
+	var fieldErr *json.UnmarshalTypeError
+	if errors.As(err, &fieldErr) {
+		return apiError{
+			APIError: discord.APIError{
+				Code: discord.APIErrorInvalidFormBody,
+				Message: "Invalid Form Body",
+			},
+			status: http.StatusBadRequest,
+		}
+	}
+
+	return nil
 }
 
 type apiError struct {

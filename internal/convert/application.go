@@ -34,12 +34,10 @@ func ApplicationToDiscord(app fluxer.Application) discord.Application {
 		BotRequireCodeGrant: app.BotRequireCodeGrant,
 		Flags:               ApplicationFlagsToDiscord(),
 		Owner: &discord.User{
-			ID:            1130650140672000000,
-			Username:      "Hampus",
-			Discriminator: "0001",
-			GlobalName:    misc.New("Hampus"),
-			Avatar:        misc.New("c4c8b5d0"),
-			Flags:         misc.New(discord.UserFlags(1)),
+			ID:            1,
+			Username:      "DeletedUser",
+			Discriminator: "0000",
+			System:        misc.New(true),
 		},
 	}
 

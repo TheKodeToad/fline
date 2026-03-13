@@ -21,12 +21,16 @@ func ReactionToDiscord(reaction fluxer.Reaction) discord.Reaction {
 	}
 }
 
-func MessageFlagsToDiscord(flags discord.MessageFlags) discord.MessageFlags {
-	commonSubset := discord.MessageFlagSupressEmbeds |
-		discord.MessageFlagSupressNotifications |
-		discord.MessageFlagVoiceMessage
+var messageFlagsCommonSubset = discord.MessageFlagSupressEmbeds |
+	discord.MessageFlagSupressNotifications |
+	discord.MessageFlagVoiceMessage
 
-	return flags & commonSubset
+func MessageFlagsToDiscord(flags discord.MessageFlags) discord.MessageFlags {
+	return flags & messageFlagsCommonSubset
+}
+
+func MessageFlagsToFluxer(flags discord.MessageFlags) discord.MessageFlags {
+	return flags & messageFlagsCommonSubset
 }
 
 func MessageToDiscord(message fluxer.Message) discord.Message {
@@ -47,7 +51,7 @@ func MessageToDiscord(message fluxer.Message) discord.Message {
 
 	var nonce *discord.Nonce
 	if message.Nonce != nil {
-		nonce = misc.New(discord.NonceFromString(*message.Nonce))
+		nonce = misc.New(NonceToDiscord(*message.Nonce))
 	}
 
 	return discord.Message{
@@ -70,5 +74,38 @@ func MessageToDiscord(message fluxer.Message) discord.Message {
 		Type:             message.Type,
 		Flags:            MessageFlagsToDiscord(message.Flags),
 		MessageReference: message.MessageReference,
+	}
+}
+
+func MessageCreateToFluxer(create discord.MessageCreate) fluxer.MessageCreate {
+	var nonce *string
+	if create.Nonce != nil {
+		nonce = misc.New(NonceToFluxer(*create.Nonce))
+	}
+
+	allowedMentions := create.AllowedMentions
+	// NOTE: Discord defaults differ from Fluxer; apply Discord defaults here
+	if allowedMentions.Parse == nil {
+		allowedMentions.Parse = []string{}
+	}
+	if allowedMentions.Roles == nil {
+		allowedMentions.Roles = []snowflake.ID{}
+	}
+	if allowedMentions.Users == nil {
+		allowedMentions.Users = []snowflake.ID{}
+	}
+	if allowedMentions.RepliedUser == nil {
+		allowedMentions.RepliedUser = misc.New(true)
+	}
+
+	return fluxer.MessageCreate{
+		Content:          create.Content,
+		Nonce:            nonce,
+		TTS:              create.TTS,
+		Embeds:           create.Embeds,
+		AllowedMentions:  allowedMentions,
+		MessageReference: create.MessageReference,
+		Flags:            create.Flags,
+		EnforceNonce:     create.EnforceNonce,
 	}
 }

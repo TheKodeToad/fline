@@ -268,7 +268,7 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 
 func packetToDiscord(packet discord.Packet, info sessionInfo) (discord.Packet, error) {
 	switch packet.Opcode {
-	case discord.GatewayOpHello, discord.GatewayOpHeartbeatAck, discord.GatewayOpInvalidSession:
+	case discord.GatewayOpHello, discord.GatewayOpHeartbeat, discord.GatewayOpHeartbeatAck, discord.GatewayOpInvalidSession:
 		// passthrough
 		return packet, nil
 	case discord.GatewayOpDispatch:

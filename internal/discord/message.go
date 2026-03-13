@@ -138,3 +138,21 @@ type Message struct {
 	MessageReference *MessageReference `json:"message_reference"`
 	// TODO: referenced message, resolved data?
 }
+
+type AllowedMentions struct {
+	Parse       []string       `json:"parse,omitzero"`
+	Roles       []snowflake.ID `json:"roles,omitzero"`
+	Users       []snowflake.ID `json:"users,omitzero"`
+	RepliedUser *bool          `json:"replied_user,omitempty"`
+}
+
+type MessageCreate struct {
+	Content          *string           `json:"content"`
+	Nonce            *Nonce            `json:"nonce"`
+	TTS              *bool             `json:"tts"`
+	Embeds           []Embed           `json:"embeds"`
+	AllowedMentions  *AllowedMentions  `json:"allowed_mentions"`
+	MessageReference *MessageReference `json:"message_reference"`
+	Flags            int               `json:"flags"`
+	EnforceNonce     *bool             `json:"enforce_nonce"`
+}

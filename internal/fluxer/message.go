@@ -34,3 +34,14 @@ type Message struct {
 	MessageReference *discord.MessageReference `json:"message_reference"`
 	// TODO: referenced message, resolved data?
 }
+
+type MessageCreate struct {
+	Content          *string                   `json:"content,omitempty"`
+	Nonce            *string                   `json:"nonce,omitempty"`
+	TTS              *bool                     `json:"tts,omitempty"`
+	Embeds           []discord.Embed           `json:"embeds,omitempty"`
+	AllowedMentions  *discord.AllowedMentions  `json:"allowed_mentions,omitempty"`
+	MessageReference *discord.MessageReference `json:"message_reference,omitempty"`
+	Flags            int                       `json:"flags"`
+	EnforceNonce     *bool                     `json:"enforce_nonce,omitempty"`
+}

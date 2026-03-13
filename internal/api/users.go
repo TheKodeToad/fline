@@ -23,7 +23,7 @@ func usersRouter(conf *config.Config, client http.Client) chi.Router {
 			}).WithContext(r.Context()),
 		)
 		if err != nil {
-			panic(fmt.Errorf("failed to request user"))
+			panic(fmt.Errorf("failed to request user: %w", err))
 		}
 		headersToDiscord(w.Header(), fluxerResp.Header)
 

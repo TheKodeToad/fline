@@ -6,12 +6,7 @@ import (
 	"strconv"
 )
 
-// NonceString represents a Discord nonce value which is always a string.
-// Use [Nonce] to allow both.
-type NonceString string
-
 // Nonce represents a Discord nonce value which is either a string or integer.
-// Use [NonceString] to represent just a string.
 type Nonce struct {
 	isStr    bool
 	strValue string
@@ -26,7 +21,7 @@ func NonceFromInt(i int64) Nonce {
 	return Nonce{isStr: false, intValue: i}
 }
 
-// String coerces the nonce to a string.
+// String coerces the nonce value to a string.
 // This is for the sake of implementing Stringer - you should use StringValue instead.
 func (n Nonce) String() string {
 	if n.isStr {
@@ -53,7 +48,7 @@ func (n Nonce) MarshalJSON() ([]byte, error) {
 }
 
 func (n Nonce) UnmarshalJSON(data []byte) error {
-	// FIXME: probably bad error message
+	// FIXME: probably handles invalid input badly
 	if data[0] == '"' {
 		return json.Unmarshal(data, &n.strValue)
 	} else {

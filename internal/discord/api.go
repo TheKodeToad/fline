@@ -232,4 +232,5 @@ var (
 type APIError struct {
 	Code    APIErrorCode `json:"code"`
 	Message string       `json:"message"`
+	// TODO: add Errors
 }

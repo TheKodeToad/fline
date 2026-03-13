@@ -15,6 +15,14 @@ func APIErrorCodeToDiscord(code fluxer.APIErrorCode) discord.APIErrorCode {
 		return discord.APIErrorUnknownApplication
 	case fluxer.APIErrorApplicationNotOwned:
 		return discord.APIErrorUnauthorizedApplicationAction
+	case fluxer.APIErrorUnknownApplication:
+		return discord.APIErrorUnknownApplication
+	case fluxer.APIErrorUnknownChannel:
+		return discord.APIErrorUnknownChannel
+	case fluxer.APIErrorUnknownGuild:
+		return discord.APIErrorUnknownGuild
+	case fluxer.APIErrorCannotSendEmptyMessage:
+		return discord.APIErrorCannotSendEmptyMessage
 	// TODO: ...draw the rest of the owl
 	default:
 		return discord.APIErrorGeneral
