@@ -63,7 +63,6 @@ func main() {
 		err = server.Serve(listener)
 		if err != http.ErrServerClosed {
 			slog.Error("error serving connections", slog.Any("err", err))
-			os.Exit(1)
 		}
 	}()
 

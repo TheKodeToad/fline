@@ -93,13 +93,15 @@ type ReadyEventApplication struct {
 	Flags ApplicationFlags `json:"flags"`
 }
 
+type UnavailableGuild struct {
+	ID          snowflake.ID `json:"id"`
+	Unavailable *bool        `json:"unavailable,omitempty"`
+}
+
 type ReadyEvent struct {
-	V      int  `json:"v"`
-	User   User `json:"user"`
-	Guilds []struct {
-		ID          snowflake.ID `json:"id"`
-		Unavailable bool         `json:"unavailable"`
-	} `json:"guilds"`
+	V                int                   `json:"v"`
+	User             User                  `json:"user"`
+	Guilds           []UnavailableGuild    `json:"guilds"`
 	SessionID        string                `json:"session_id"`
 	ResumeGatewayURL string                `json:"resume_gateway_url"`
 	Shard            *[2]int               `json:"shard,omitempty"`
@@ -107,4 +109,9 @@ type ReadyEvent struct {
 	// NOTE: this is just an (undocumented) empty array Discord keeps for backwards compatibility.
 	// Without this Eris will not like the packet.
 	PrivateChannels [0]struct{} `json:"private_channels"`
+}
+
+type MessageCreateEvent struct {
+	Message
+	GuildID *snowflake.ID `json:"guild_id,omitempty"`
 }

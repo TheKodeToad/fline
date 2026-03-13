@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/TheKodeToad/fine/internal/config"
@@ -11,32 +12,37 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func usersRoutes(conf *config.Config, client http.Client) chi.Router {
+func usersRouter(conf *config.Config, client http.Client) chi.Router {
 	router := chi.NewRouter()
 
-	router.Get("/@me", func(w http.ResponseWriter, r *http.Request) {
+	router.Get("/@me", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
 		fluxerResp, err := client.Do(
 			(&http.Request{
-				Header: forwardHeader(&r.Header),
-				URL:    makeFluxerURL("/users/@me", conf),
+				Header: headersToFluxer(r.Header),
+				URL:    formatFluxerURL(conf, "/users/@me"),
 			}).WithContext(r.Context()),
 		)
 		if err != nil {
-			panic(fmt.Errorf("failed to request fluxer user"))
+			panic(fmt.Errorf("failed to request user"))
+		}
+		headersToDiscord(w.Header(), fluxerResp.Header)
+
+		errResp, err := convFluxerErrorResponse(fluxerResp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert user error response: %w", err)
+		} else if errResp != nil {
+			return errResp, nil
 		}
 
-		var user fluxer.PrivateUser
-		err = json.NewDecoder(fluxerResp.Body).Decode(&user)
+		var inUser fluxer.UserPrivate
+		err = json.NewDecoder(fluxerResp.Body).Decode(&inUser)
 		if err != nil {
-			panic(fmt.Errorf("failed to decode fluxer user response: %w", err))
+			return nil, fmt.Errorf("failed to decode user response: %w", err)
 		}
 
-		w.Header().Add("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(convert.PrivateUserToDiscord(user))
-		if err != nil {
-			panic(fmt.Errorf("failed to write discord user response: %w", err))
-		}
-	})
+		outUser := convert.UserPrivateToDiscord(inUser)
+		return outUser, nil
+	}))
 
 	return router
 }

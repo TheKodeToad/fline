@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	fine "github.com/TheKodeToad/fine/internal"
@@ -11,34 +12,38 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func gatewayRoutes(conf *config.Config, client http.Client) chi.Router {
+func gatewayRouter(conf *config.Config, client http.Client) chi.Router {
 	router := chi.NewRouter()
 
-	router.Get("/bot", func(w http.ResponseWriter, r *http.Request) {
+	router.Get("/bot", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
 		fluxerResp, err := client.Do(
 			(&http.Request{
-				Header: forwardHeader(&r.Header),
-				URL:    makeFluxerURL("/gateway/bot", conf),
+				Header: headersToFluxer(r.Header),
+				URL:    formatFluxerURL(conf, "/gateway/bot"),
 			}).WithContext(r.Context()),
 		)
 		if err != nil {
-			panic(fmt.Errorf("failed to request fluxer gateway info"))
+			return nil, fmt.Errorf("failed to request gateway info: %w", err)
 		}
+		headersToDiscord(w.Header(), fluxerResp.Header)
 
-		var info discord.GatewayInfo
-		err = json.NewDecoder(fluxerResp.Body).Decode(&info)
+		errResp, err := convFluxerErrorResponse(fluxerResp)
 		if err != nil {
-			panic(fmt.Errorf("failed to decode fluxer gateway info response: %w", err))
+			return nil, fmt.Errorf("failed to convert gateway info response: %w", err)
+		} else if errResp != nil {
+			return errResp, nil
 		}
 
-		info.URL = fine.GatewayURL(r.Host)
-
-		w.Header().Add("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(info)
+		var inInfo discord.GatewayInfo
+		err = json.NewDecoder(fluxerResp.Body).Decode(&inInfo)
 		if err != nil {
-			panic(fmt.Errorf("failed to write discord user response: %w", err))
+			return nil, fmt.Errorf("failed to decode gateway info response: %w", err)
 		}
-	})
+
+		outInfo := inInfo
+		outInfo.URL = fine.GatewayURL(r.Host)
+		return outInfo, nil
+	}))
 
 	return router
 }

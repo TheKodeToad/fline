@@ -5,9 +5,9 @@ import "github.com/disgoorg/snowflake/v2"
 type UserFlags uint
 
 const (
-	UserStaff           UserFlags = 1 << 0
-	UserBugHunterLevel1 UserFlags = 1 << 3
-	UserBugHunterLevel2 UserFlags = 1 << 14
+	UserFlagStaff           UserFlags = 1 << 0
+	UserFlagBugHunterLevel1 UserFlags = 1 << 3
+	UserFlagBugHunterLevel2 UserFlags = 1 << 14
 )
 
 type PremiumType uint
@@ -27,7 +27,7 @@ type User struct {
 	System        *bool        `json:"system,omitempty"`
 	MFAEnabled    *bool        `json:"mfa_enabled,omitempty"`
 	Banner        *string      `json:"banner,omitempty"`
-	AccentColor   *int         `json:"accent_color,omitempty"`
+	AccentColor   *uint        `json:"accent_color,omitempty"`
 	Locale        *string      `json:"locale,omitempty"`
 	Verified      *bool        `json:"verified,omitempty"`
 	Email         *string      `json:"email,omitempty"`

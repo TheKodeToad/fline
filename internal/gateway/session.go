@@ -44,7 +44,8 @@ func setupWSChannels(conn *websocket.Conn) wsChannels {
 				return
 			}
 
-			// FIXME: maybe in theory this could leak the goroutine?
+			// FIXME: maybe in theory this could block forever if just as a message is read the run loop is ending?
+			// that's pretty bad
 			read <- wsMessage{msgType, msg}
 		}
 	}()
@@ -249,6 +250,16 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		}
 
 		outEvent := convert.ReadyEventToDiscord(inEvent)
+		return json.Marshal(outEvent)
+	case "MESSAGE_CREATE":
+		var inEvent fluxer.MessageCreateEvent
+
+		err := json.Unmarshal(payload, &inEvent)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outEvent := convert.MessageCreateEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
 	default:
 		return json.RawMessage{}, errNonConvertiblePacket

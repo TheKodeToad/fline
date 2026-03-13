@@ -9,12 +9,12 @@ import (
 func UserFlagsToDiscord(flags fluxer.UserFlags) discord.UserFlags {
 	var result discord.UserFlags
 
-	if flags&fluxer.UserStaff != 0 {
-		result |= discord.UserStaff
+	if flags&fluxer.UserFlagStaff != 0 {
+		result |= discord.UserFlagStaff
 	}
 
-	if flags&fluxer.UserBugHunter != 0 {
-		result |= discord.UserBugHunterLevel1
+	if flags&fluxer.UserFlagBugHunter != 0 {
+		result |= discord.UserFlagBugHunterLevel1
 	}
 
 	return result
@@ -28,7 +28,7 @@ func PremiumTypeToDiscord(kind fluxer.PremiumType) discord.PremiumType {
 	}
 }
 
-func PartialUserToDiscord(user fluxer.PartialUser) discord.User {
+func UserPartialToDiscord(user fluxer.UserPartial) discord.User {
 	return discord.User{
 		ID:            user.ID,
 		Username:      user.Username,
@@ -41,8 +41,8 @@ func PartialUserToDiscord(user fluxer.PartialUser) discord.User {
 	}
 }
 
-func PrivateUserToDiscord(user fluxer.PrivateUser) discord.User {
-	result := PartialUserToDiscord(user.PartialUser)
+func UserPrivateToDiscord(user fluxer.UserPrivate) discord.User {
+	result := UserPartialToDiscord(user.UserPartial)
 
 	result.AccentColor = user.AccentColor
 	result.MFAEnabled = &user.MFAEnabled

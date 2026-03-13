@@ -6,17 +6,25 @@ import (
 )
 
 // ReadyEventToDiscord converts a Fluxer gateway ready event to a Discord one.
-// The ResumeGatewayURL had better be not-nil, you have been warned.
+// The ResumeGatewayURL had better be non-nil, you have been warned.
 func ReadyEventToDiscord(data fluxer.ReadyEvent) discord.ReadyEvent {
 	return discord.ReadyEvent{
 		V:                data.Version,
-		User:             PrivateUserToDiscord(data.User),
+		User:             UserPrivateToDiscord(data.User),
 		Guilds:           data.Guilds,
 		SessionID:        data.SessionID,
 		ResumeGatewayURL: *data.ResumeGatewayURL,
 		Application: discord.ReadyEventApplication{
-			ID:    data.User.ID,
-			Flags: IntrinsicFluxerApplicationFlags,
+			ID: data.User.ID,
+			// NOTE: if Fluxer adds any application flags this may no longer be accurate
+			Flags: ApplicationFlagsToDiscord(),
 		},
+	}
+}
+
+func MessageCreateEventToDiscord(event fluxer.MessageCreateEvent) discord.MessageCreateEvent {
+	return discord.MessageCreateEvent{
+		Message: MessageToDiscord(event.Message),
+		GuildID: event.GuildID,
 	}
 }

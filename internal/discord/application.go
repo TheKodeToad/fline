@@ -11,9 +11,9 @@ const (
 type ApplicationFlags uint
 
 var (
-	ApplicationGatewayPresence       ApplicationFlags = 1 << 12
-	ApplicationGatewayGuildMembers   ApplicationFlags = 1 << 14
-	ApplicationGatewayMessageContent ApplicationFlags = 1 << 18
+	ApplicationFlagGatewayPresence       ApplicationFlags = 1 << 12
+	ApplicationFlagGatewayGuildMembers   ApplicationFlags = 1 << 14
+	ApplicationFlagGatewayMessageContent ApplicationFlags = 1 << 18
 )
 
 type Application struct {

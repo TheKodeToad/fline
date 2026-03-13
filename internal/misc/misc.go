@@ -1,3 +1,4 @@
+// Package misc contains things which genuinely belong nowhere else and are too small to warrant a whole package!
 package misc
 
 // New returns the address of the passed parameter - similar to the behaviour of new in Go 1.26.

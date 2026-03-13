@@ -45,9 +45,9 @@ func TestApplicationToDiscord(t *testing.T) {
 			Banner:        misc.New("botbanner"),
 			Flags:         misc.New(discord.UserFlags(0)),
 		},
-		Flags: discord.ApplicationGatewayPresence |
-			discord.ApplicationGatewayGuildMembers |
-			discord.ApplicationGatewayMessageContent,
+		Flags: discord.ApplicationFlagGatewayPresence |
+			discord.ApplicationFlagGatewayGuildMembers |
+			discord.ApplicationFlagGatewayMessageContent,
 	}
 	got := convert.ApplicationToDiscord(input)
 
