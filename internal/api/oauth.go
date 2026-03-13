@@ -25,6 +25,7 @@ func oauthRouter(conf *config.Config, client http.Client) chi.Router {
 		if err != nil {
 			return nil, fmt.Errorf("failed to request application: %w", err)
 		}
+		headersToDiscord(w.Header(), fluxerResp.Header)
 
 		errResp, err := convFluxerErrorResponse(fluxerResp)
 		if err != nil {
