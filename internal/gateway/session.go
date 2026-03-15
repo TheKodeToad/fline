@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -162,24 +163,34 @@ func startSession(conf *config.Config, w http.ResponseWriter, r *http.Request) (
 	}, nil
 }
 
-func logPacket(packet discord.Packet) []any {
-	var result []any
+func logPacket(msg string, packet discord.Packet) error {
+	if !slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+		return nil
+	}
+
+	var params []any
 
 	if packet.SequenceNum != nil {
-		result = append(
-			result,
+		params = append(
+			params,
 			slog.Int("seq", *packet.SequenceNum),
 		)
 	}
 
-	result = append(
-		result,
+	data, err := json.MarshalIndent(packet.Data, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal packet data: %w", err)
+	}
+
+	params = append(
+		params,
 		slog.Any("opcode", packet.Opcode),
 		slog.String("event", packet.Event),
-		slog.String("data", string(packet.Data)),
+		slog.String("data", string(data)),
 	)
 
-	return result
+	slog.Debug(msg, params...)
+	return nil
 }
 
 // errNonConvertiblePacket signals that the packet is not convertible and nothing should be sent to the destination.
@@ -210,7 +221,10 @@ func (s *session) handleClientMsg(msg wsMessage) error {
 		return fmt.Errorf("failed to unmarshal client packet: %w", err)
 	}
 
-	slog.Debug("received discord packet", logPacket(inPacket)...)
+	err = logPacket("received discord packet", inPacket)
+	if err != nil {
+		slog.Warn("failed to log discord packet", slog.Any("err", err))
+	}
 
 	outPacket, err := packetToFluxer(inPacket)
 	if errors.Is(err, errNonConvertiblePacket) {
@@ -318,7 +332,11 @@ func (s *session) handleFluxerMsg(msg wsMessage) error {
 		return fmt.Errorf("failed to unmarshal fluxer packet: %w", err)
 	}
 
-	slog.Debug("received fluxer packet", logPacket(inPacket)...)
+	err = logPacket("received fluxer packet", inPacket)
+	if err != nil {
+		slog.Warn("failed to log fluxer packet", slog.Any("err", err))
+	}
+
 
 	outPacket, err := packetToDiscord(inPacket, s.info)
 	if errors.Is(err, errNonConvertiblePacket) {

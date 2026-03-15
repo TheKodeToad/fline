@@ -14,6 +14,7 @@ import (
 	"github.com/TheKodeToad/fine/internal/api"
 	"github.com/TheKodeToad/fine/internal/config"
 	"github.com/TheKodeToad/fine/internal/gateway"
+	"github.com/TheKodeToad/fine/internal/legiblelog"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -25,7 +26,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+	logger := slog.New(legiblelog.NewHandler(os.Stderr, &slog.HandlerOptions{
 		Level: conf.LogLevel,
 	}))
 	slog.SetDefault(logger)
