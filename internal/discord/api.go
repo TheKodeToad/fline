@@ -138,7 +138,7 @@ var (
 	APIErrorInviteCodeInvalidOrToken                             APIErrorCode = 50020
 	APIErrorCannotPerformOnSystemMessage                         APIErrorCode = 50021
 	APIErrorCannotPerformOnChannelType                           APIErrorCode = 50024
-	APIErrorInvalidOauth2AccessToken                             APIErrorCode = 50025
+	APIErrorInvalidOAuth2AccessToken                             APIErrorCode = 50025
 	APIErrorMissingRequiredOAuth2Scope                           APIErrorCode = 50026
 	APIErrorInvalidWebhookToken                                  APIErrorCode = 50027
 	APIErrorInvalidRole                                          APIErrorCode = 50028

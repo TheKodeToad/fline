@@ -7,6 +7,12 @@ Here are some of the noteworthy differences I have found between the Discord and
 `nonce`:
 - While Discord allows integer nonce values in some places (and presumably for compatibility you need to make sure this is preserved), on Fluxer only strings are allowed.
 
+Roles:
+- There are no role tags.
+- There is no `colors` field - which makes sense without role gradients - but Discord has deprecated the color field and made this field required in the response.
+
+Permissions:
+- The permission `UPDATE_RTC_REGION` (`1 << 53` - "Set Voice Region") is not present on Discord. If Discord adds another permission it could conflict.
 
 ## REST API
 

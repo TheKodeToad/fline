@@ -22,6 +22,43 @@ func ReadyEventToDiscord(data fluxer.ReadyEvent) discord.ReadyEvent {
 	}
 }
 
+func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreateEvent {
+	members := make([]discord.GuildMember, 0, len(event.Members))
+	for _, member := range event.Members {
+		members = append(members, GuildMemberToDiscord(member))
+	}
+
+	channels := make([]discord.Channel, 0, len(event.Channels))
+	for _, channel := range event.Channels {
+		conv, ok := ChannelToDiscord(channel)
+		if !ok {
+			continue
+		}
+
+		channels = append(channels, conv)
+	}
+
+	guild := GuildToDiscord(event.Guild)
+
+	guild.Roles = make([]discord.Role, 0, len(event.Roles))
+	for _, role := range event.Roles {
+		guild.Roles = append(guild.Roles, RoleToDiscord(role))
+	}
+
+	guild.Emojis = event.Emojis
+	guild.Stickers = event.Stickers
+
+	return discord.GuildCreateEvent{
+		Guild:       guild,
+		JoinedAt:    event.JoinedAt,
+		Large:       event.Large,
+		Unavailable: event.Unavailable,
+		MemberCount: event.MemberCount,
+		Members:     members,
+		Channels:    channels,
+	}
+}
+
 func MessageCreateEventToDiscord(event fluxer.MessageCreateEvent) discord.MessageCreateEvent {
 	return discord.MessageCreateEvent{
 		Message: MessageToDiscord(event.Message),

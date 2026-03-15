@@ -13,6 +13,20 @@ type ReadyEvent struct {
 	ResumeGatewayURL *string                    `json:"resume_gateway_url"`
 }
 
+type GuildCreateEvent struct {
+	Guild
+	JoinedAt    string        `json:"joined_at"`
+	Large       bool          `json:"large"`
+	Unavailable *bool         `json:"unavailable,omitempty"`
+	MemberCount int           `json:"member_count"`
+	Members     []GuildMember `json:"members"`
+	Channels    []Channel     `json:"channels"`
+	// NOTE: these fields are included inside a Discord guild, but Fluxer only sends them in the gateway event
+	Roles    []Role            `json:"roles"`
+	Emojis   []discord.Emoji   `json:"emojis"`
+	Stickers []discord.Sticker `json:"stickers,omitzero"`
+}
+
 type MessageCreateEvent struct {
 	Message
 	GuildID *snowflake.ID `json:"guild_id,omitempty"`

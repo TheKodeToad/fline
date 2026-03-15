@@ -111,6 +111,16 @@ type ReadyEvent struct {
 	PrivateChannels [0]struct{} `json:"private_channels"`
 }
 
+type GuildCreateEvent struct {
+	Guild
+	JoinedAt    string        `json:"joined_at"`
+	Large       bool          `json:"large"`
+	Unavailable *bool         `json:"unavailable,omitempty"`
+	MemberCount int           `json:"member_count"`
+	Members     []GuildMember `json:"members"`
+	Channels    []Channel     `json:"channels"`
+}
+
 type MessageCreateEvent struct {
 	Message
 	GuildID *snowflake.ID `json:"guild_id,omitempty"`
