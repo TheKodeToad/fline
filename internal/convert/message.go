@@ -84,18 +84,20 @@ func MessageCreateToFluxer(create discord.MessageCreate) fluxer.MessageCreate {
 	}
 
 	allowedMentions := create.AllowedMentions
-	// NOTE: Discord defaults differ from Fluxer; apply Discord defaults here
-	if allowedMentions.Parse == nil {
-		allowedMentions.Parse = []string{}
-	}
-	if allowedMentions.Roles == nil {
-		allowedMentions.Roles = []snowflake.ID{}
-	}
-	if allowedMentions.Users == nil {
-		allowedMentions.Users = []snowflake.ID{}
-	}
-	if allowedMentions.RepliedUser == nil {
-		allowedMentions.RepliedUser = misc.New(true)
+	if allowedMentions != nil {
+		// NOTE: Discord defaults differ from Fluxer; apply Discord defaults here
+		if allowedMentions.Parse == nil {
+			allowedMentions.Parse = []string{}
+		}
+		if allowedMentions.Roles == nil {
+			allowedMentions.Roles = []snowflake.ID{}
+		}
+		if allowedMentions.Users == nil {
+			allowedMentions.Users = []snowflake.ID{}
+		}
+		if allowedMentions.RepliedUser == nil {
+			allowedMentions.RepliedUser = misc.New(true)
+		}
 	}
 
 	return fluxer.MessageCreate{
