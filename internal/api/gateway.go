@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	fine "github.com/TheKodeToad/fine/internal"
-	"github.com/TheKodeToad/fine/internal/config"
-	"github.com/TheKodeToad/fine/internal/discord"
+	fine "github.com/TheKodeToad/fline/internal"
+	"github.com/TheKodeToad/fline/internal/config"
+	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/go-chi/chi/v5"
 )
 

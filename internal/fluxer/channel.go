@@ -1,7 +1,7 @@
 package fluxer
 
 import (
-	"github.com/TheKodeToad/fine/internal/discord"
+	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/disgoorg/snowflake/v2"
 )
 

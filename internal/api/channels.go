@@ -8,10 +8,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/TheKodeToad/fine/internal/config"
-	"github.com/TheKodeToad/fine/internal/convert"
-	"github.com/TheKodeToad/fine/internal/discord"
-	"github.com/TheKodeToad/fine/internal/fluxer"
+	"github.com/TheKodeToad/fline/internal/config"
+	"github.com/TheKodeToad/fline/internal/convert"
+	"github.com/TheKodeToad/fline/internal/discord"
+	"github.com/TheKodeToad/fline/internal/fluxer"
 	"github.com/go-chi/chi/v5"
 )
 

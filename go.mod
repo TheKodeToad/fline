@@ -1,4 +1,4 @@
-module github.com/TheKodeToad/fine
+module github.com/TheKodeToad/fline
 
 go 1.24.0
 

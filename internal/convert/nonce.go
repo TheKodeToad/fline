@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/TheKodeToad/fine/internal/discord"
+	"github.com/TheKodeToad/fline/internal/discord"
 )
 
 // since Fluxer only allows string nonce values, we will append this prefix 

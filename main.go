@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	fine "github.com/TheKodeToad/fine/internal"
-	"github.com/TheKodeToad/fine/internal/api"
-	"github.com/TheKodeToad/fine/internal/config"
-	"github.com/TheKodeToad/fine/internal/gateway"
-	"github.com/TheKodeToad/fine/internal/legiblelog"
+	fine "github.com/TheKodeToad/fline/internal"
+	"github.com/TheKodeToad/fline/internal/api"
+	"github.com/TheKodeToad/fline/internal/config"
+	"github.com/TheKodeToad/fline/internal/gateway"
+	"github.com/TheKodeToad/fline/internal/legiblelog"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )

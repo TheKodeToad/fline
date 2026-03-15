@@ -1,8 +1,8 @@
 package convert
 
 import (
-	"github.com/TheKodeToad/fine/internal/discord"
-	"github.com/TheKodeToad/fine/internal/fluxer"
+	"github.com/TheKodeToad/fline/internal/discord"
+	"github.com/TheKodeToad/fline/internal/fluxer"
 )
 
 func commonChannelTypeSubset(kind discord.ChannelType) bool {

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/TheKodeToad/fine/internal/config"
+	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/gorilla/websocket"
 )
 

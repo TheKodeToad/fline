@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/TheKodeToad/fine/internal/convert"
-	"github.com/TheKodeToad/fine/internal/discord"
-	"github.com/TheKodeToad/fine/internal/fluxer"
-	"github.com/TheKodeToad/fine/internal/misc"
+	"github.com/TheKodeToad/fline/internal/convert"
+	"github.com/TheKodeToad/fline/internal/discord"
+	"github.com/TheKodeToad/fline/internal/fluxer"
+	"github.com/TheKodeToad/fline/internal/misc"
 )
 
 func TestApplicationToDiscord(t *testing.T) {

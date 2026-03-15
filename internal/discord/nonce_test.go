@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/TheKodeToad/fine/internal/discord"
+	"github.com/TheKodeToad/fline/internal/discord"
 )
 
 func TestNonceStringJSON(t *testing.T) {

@@ -1,10 +1,8 @@
 package convert
 
 import (
-	"fmt"
-
-	"github.com/TheKodeToad/fine/internal/discord"
-	"github.com/TheKodeToad/fine/internal/fluxer"
+	"github.com/TheKodeToad/fline/internal/discord"
+	"github.com/TheKodeToad/fline/internal/fluxer"
 )
 
 // ReadyEventToDiscord converts a Fluxer gateway ready event to a Discord one.

@@ -1,7 +1,7 @@
 package discord
 
 import (
-	"github.com/TheKodeToad/fine/internal/flags"
+	"github.com/TheKodeToad/fline/internal/flags"
 	"github.com/disgoorg/snowflake/v2"
 )
 

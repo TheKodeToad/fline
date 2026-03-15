@@ -1,9 +1,9 @@
 package convert
 
 import (
-	"github.com/TheKodeToad/fine/internal/discord"
-	"github.com/TheKodeToad/fine/internal/fluxer"
-	"github.com/TheKodeToad/fine/internal/misc"
+	"github.com/TheKodeToad/fline/internal/discord"
+	"github.com/TheKodeToad/fline/internal/fluxer"
+	"github.com/TheKodeToad/fline/internal/misc"
 )
 
 func UserFlagsToDiscord(flags fluxer.UserFlags) discord.UserFlags {

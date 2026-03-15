@@ -1,9 +1,9 @@
 package convert
 
 import (
-	"github.com/TheKodeToad/fine/internal/discord"
-	"github.com/TheKodeToad/fine/internal/flags"
-	"github.com/TheKodeToad/fine/internal/fluxer"
+	"github.com/TheKodeToad/fline/internal/discord"
+	"github.com/TheKodeToad/fline/internal/flags"
+	"github.com/TheKodeToad/fline/internal/fluxer"
 )
 
 var permsCommonSubset = flags.New(

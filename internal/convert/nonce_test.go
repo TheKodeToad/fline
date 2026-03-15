@@ -3,8 +3,8 @@ package convert_test
 import (
 	"testing"
 
-	"github.com/TheKodeToad/fine/internal/convert"
-	"github.com/TheKodeToad/fine/internal/discord"
+	"github.com/TheKodeToad/fline/internal/convert"
+	"github.com/TheKodeToad/fline/internal/discord"
 )
 
 func TestNonceInt(t *testing.T) {
