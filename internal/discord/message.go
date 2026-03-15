@@ -135,7 +135,7 @@ type Message struct {
 	WebhookID        *snowflake.ID     `json:"webhook_id"`
 	Type             MessageType       `json:"type"`
 	Flags            MessageFlags      `json:"flags"`
-	MessageReference *MessageReference `json:"message_reference"`
+	MessageReference *MessageReference `json:"message_reference,omitempty"`
 	// TODO: referenced message, resolved data?
 }
 

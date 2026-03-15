@@ -24,7 +24,7 @@ const (
 )
 
 // NOTE: Fluxer's structure is identical.
-type GatewayInfo struct {
+type GatewayBotInfo struct {
 	URL               string `json:"url"`
 	Shards            int    `json:"shards"`
 	SessionStartLimit struct {

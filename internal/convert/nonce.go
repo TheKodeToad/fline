@@ -7,6 +7,8 @@ import (
 	"github.com/TheKodeToad/fine/internal/discord"
 )
 
+// since Fluxer only allows string nonce values, we will append this prefix 
+// when converting it to Fluxer and strip it when converting to Discord
 const numericNoncePrefix = "numeric!!"
 
 func NonceToDiscord(nonce string) discord.Nonce {
@@ -24,11 +26,9 @@ func NonceToDiscord(nonce string) discord.Nonce {
 }
 
 func NonceToFluxer(nonce discord.Nonce) string {
-	if str, ok := nonce.StringValue(); ok {
-		return str
-	} else if i, ok := nonce.IntValue(); ok {
-		return numericNoncePrefix + strconv.FormatInt(i, 10)
+	if nonce.IsString() {
+		return nonce.StringValue()
 	} else {
-		panic("unexpected nonce variant")
+		return numericNoncePrefix + strconv.FormatInt(nonce.IntValue(), 10)
 	}
 }

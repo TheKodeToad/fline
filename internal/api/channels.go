@@ -29,6 +29,10 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 			}
 		}
 
+		if inCreate.Nonce != nil {
+			fmt.Println(inCreate.Nonce)
+		}
+
 		outCreate := convert.MessageCreateToFluxer(inCreate)
 
 		fluxerPayload, err := json.Marshal(outCreate)

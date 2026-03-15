@@ -28,6 +28,9 @@ GET `applications/@me`:
 GET `users/{id}`:
 - If `{id}` does not correspond to a real user it responds with DeletedUser#0000 with the provided ID unlike Discord which responds with the error message `Unknown User`.
 
+GET `guilds/{id}`
+- `roles`, `emojis` and `stickers` are missing
+
 ## Gateway
 
 Fluxer doesn't seem to support sharding apart from including some related constants and including `shards` as `1` in the gateway info endpoint for compatibility with Discord libs.
@@ -36,3 +39,6 @@ Fluxer doesn't seem to support sharding apart from including some related consta
 - The `application` field is missing.
 - The `resume_gateway_url` field is missing.
 - The `shard` field is missing
+
+`GUILD_CREATE` event:
+- Most of the guild's properties are within `properties`.

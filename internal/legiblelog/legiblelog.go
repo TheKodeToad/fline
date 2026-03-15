@@ -12,6 +12,7 @@ import (
 )
 
 // inspired by approach in https://dusted.codes/creating-a-pretty-console-logger-using-gos-slog-package
+// FIXME: maybe there is something less innefficient
 
 // Handler is a [slog.Handler] which outputs Records in a nicely formatted manner.
 // It is designed for development and may be innefficient.

@@ -1,6 +1,8 @@
 package convert
 
 import (
+	"fmt"
+
 	"github.com/TheKodeToad/fine/internal/discord"
 	"github.com/TheKodeToad/fine/internal/fluxer"
 )
@@ -38,7 +40,7 @@ func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreat
 		channels = append(channels, conv)
 	}
 
-	guild := GuildToDiscord(event.Guild)
+	guild := GuildToDiscord(event.Properties)
 
 	guild.Roles = make([]discord.Role, 0, len(event.Roles))
 	for _, role := range event.Roles {

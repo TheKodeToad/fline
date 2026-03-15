@@ -14,7 +14,7 @@ type ReadyEvent struct {
 }
 
 type GuildCreateEvent struct {
-	Guild
+	Properties  Guild         `json:"properties"`
 	JoinedAt    string        `json:"joined_at"`
 	Large       bool          `json:"large"`
 	Unavailable *bool         `json:"unavailable,omitempty"`

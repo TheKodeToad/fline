@@ -184,7 +184,7 @@ func logPacket(msg string, packet discord.Packet) error {
 
 	params = append(
 		params,
-		slog.Any("opcode", packet.Opcode),
+		slog.String("opcode", packet.Opcode.String()),
 		slog.String("event", packet.Event),
 		slog.String("data", string(data)),
 	)

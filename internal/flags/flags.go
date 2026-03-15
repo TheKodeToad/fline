@@ -58,7 +58,7 @@ func (s Set) Union(s2 Set) Set {
 }
 
 // NOTE: unused, this is just to avoid the annoyance if it's needed later
-func (s Set) Equals(s2 Set) bool {
+func (s Set) Equal(s2 Set) bool {
 	if s.val == nil {
 		return s2.val == nil || s2.val.BitLen() == 0
 	}
