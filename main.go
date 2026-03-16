@@ -41,11 +41,6 @@ func main() {
 		gateway.ServeHTTP(&conf, w, r)
 	})
 
-	router.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		slog.Debug("no route for " + r.URL.Path)
-		http.NotFound(w, r)
-	})
-
 	server := http.Server{
 		Addr: conf.ListenAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

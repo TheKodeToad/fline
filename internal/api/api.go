@@ -32,6 +32,11 @@ func Routes(conf *config.Config) chi.Router {
 		router.Mount("/users", usersRouter(conf, client))
 	})
 
+	router.NotFound(apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error) {
+		logger.Debug("api route not found")
+		return nil, apiError{status: http.StatusNotFound}
+	}))
+
 	return router
 }
 
@@ -195,7 +200,7 @@ func apiHandler(handler apiHandlerFunc) http.HandlerFunc {
 		logger := slog.Default().With(slog.Any("url", r.URL.String()))
 
 		formatStatus := func(status int) string {
-			return fmt.Sprintf("%d %s", status, http.StatusText(status))
+			return fmt.Sprintf("%d: %s", status, http.StatusText(status))
 		}
 
 		status := http.StatusOK
@@ -203,6 +208,10 @@ func apiHandler(handler apiHandlerFunc) http.HandlerFunc {
 		if err != nil {
 			var apiErr apiError
 			if errors.As(err, &apiErr) {
+				if apiErr.Message == "" {
+					apiErr.Message = formatStatus(apiErr.status)
+				}
+
 				respObject = apiErr
 			} else {
 				logger.Warn("unexpected error in handler", slog.Any("err", err))
