@@ -3,6 +3,7 @@ package convert
 import (
 	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/TheKodeToad/fline/internal/fluxer"
+	"github.com/TheKodeToad/fline/internal/misc"
 )
 
 // ReadyEventToDiscord converts a Fluxer gateway ready event to a Discord one.
@@ -60,8 +61,14 @@ func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreat
 }
 
 func MessageCreateEventToDiscord(event fluxer.MessageCreateEvent) discord.MessageCreateEvent {
+	var member *discord.GuildMember
+	if event.Member != nil {
+		member = misc.New(GuildMemberToDiscord(*event.Member))
+	}
+
 	return discord.MessageCreateEvent{
 		Message: MessageToDiscord(event.Message),
 		GuildID: event.GuildID,
+		Member:  member,
 	}
 }

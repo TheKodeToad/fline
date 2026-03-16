@@ -63,9 +63,9 @@ type EmbedAuthor struct {
 }
 
 type EmbedField struct {
-	Name   string
-	Value  string
-	Inline *bool `json:"inline"`
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Inline *bool  `json:"inline"`
 }
 
 type Embed struct {

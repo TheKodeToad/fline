@@ -7,14 +7,15 @@ import (
 
 func commonChannelTypeSubset(kind discord.ChannelType) bool {
 	switch kind {
-	case discord.ChannelTypeGuildText:
-	case discord.ChannelTypeDM:
-	case discord.ChannelTypeGuildVoice:
-	case discord.ChannelTypeGroupDM:
-	case discord.ChannelTypeGuildCategory:
+	case discord.ChannelTypeGuildText,
+		discord.ChannelTypeDM,
+		discord.ChannelTypeGuildVoice,
+		discord.ChannelTypeGroupDM,
+		discord.ChannelTypeGuildCategory:
 		return true
+	default:
+		return false
 	}
-	return false
 }
 
 func ChannelToDiscord(channel fluxer.Channel) (discord.Channel, bool) {
@@ -45,5 +46,4 @@ func ChannelToDiscord(channel fluxer.Channel) (discord.Channel, bool) {
 		RateLimitPerUser:     channel.RateLimitPerUser,
 		Recipients:           recipients,
 	}, true
-
 }

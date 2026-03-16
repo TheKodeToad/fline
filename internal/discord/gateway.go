@@ -124,4 +124,5 @@ type GuildCreateEvent struct {
 type MessageCreateEvent struct {
 	Message
 	GuildID *snowflake.ID `json:"guild_id,omitempty"`
+	Member  *GuildMember  `json:"member,omitempty"`
 }

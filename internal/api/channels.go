@@ -29,10 +29,6 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 			}
 		}
 
-		if inCreate.Nonce != nil {
-			fmt.Println(inCreate.Nonce)
-		}
-
 		outCreate := convert.MessageCreateToFluxer(inCreate)
 
 		fluxerPayload, err := json.Marshal(outCreate)
@@ -65,7 +61,7 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode posted message response: %w", err)
 		}
-		
+
 		outMessage := convert.MessageToDiscord(inMessage)
 		return outMessage, nil
 	}))

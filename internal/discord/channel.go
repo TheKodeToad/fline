@@ -9,7 +9,7 @@ var (
 	ChannelTypeDM            ChannelType = 1
 	ChannelTypeGuildVoice    ChannelType = 2
 	ChannelTypeGroupDM       ChannelType = 3
-	ChannelTypeGuildCategory ChannelType = 3
+	ChannelTypeGuildCategory ChannelType = 4
 )
 
 type Channel struct {
