@@ -211,6 +211,7 @@ func apiHandler(handler apiHandlerFunc) http.HandlerFunc {
 					apiErr.Message = formatStatus(apiErr.status)
 				}
 
+				status = apiErr.status
 				respObject = apiErr
 			} else {
 				logger.Warn("unexpected error in handler", slog.Any("err", err))
