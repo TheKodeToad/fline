@@ -17,8 +17,6 @@ type Guild struct {
 	VerificationLevel           int           `json:"verification_level"`
 	DefaultMessageNotifications int           `json:"default_message_notifications"`
 	ExplicitContentFilter       int           `json:"explicit_content_filter"`
-	Roles                       []Role        `json:"roles"`
-	Emojis                      []Emoji       `json:"emojis"`
 	Features                    []string      `json:"features"`
 	MFALevel                    int           `json:"mfa_level"`
 	ApplicationID               *snowflake.ID `json:"application_id"`
@@ -32,6 +30,8 @@ type Guild struct {
 	ApproximateMemberCount      *int          `json:"approximate_member_count,omitempty"`
 	ApproximatePresenceCount    *int          `json:"approximate_presence_count,omitempty"`
 	NSFWLevel                   int           `json:"nsfw_level"`
+	Roles                       []Role        `json:"roles"`
+	Emojis                      []Emoji       `json:"emojis"`
 	Stickers                    []Sticker     `json:"stickers,omitzero"`
 }
 

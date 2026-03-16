@@ -13,11 +13,30 @@ import (
 	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/TheKodeToad/fline/internal/convert"
 	"github.com/TheKodeToad/fline/internal/discord"
+	"github.com/TheKodeToad/fline/internal/fluxer"
 	"github.com/go-chi/chi/v5"
 )
 
 func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 	router := chi.NewRouter()
+
+	router.Get("/{guild_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error) {
+		fluxerResp, err := performFluxerRequest(w, r, client, &http.Request{
+			URL: formatFluxerURL(conf, "/guilds/%s", r.PathValue("guild_id")),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
+		}
+
+		var guildIn fluxer.Guild
+		err = json.NewDecoder(fluxerResp.Body).Decode(&guildIn)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode fluxer response: %w", err)
+		}
+
+		guildOut := convert.GuildToDiscord(guildIn)
+		return guildOut, nil
+	}))
 
 	router.Put("/{guild_id}/bans/{user_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
 		var inCreate discord.GuildBanCreate

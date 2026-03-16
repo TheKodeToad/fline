@@ -31,6 +31,9 @@ func GuildToDiscord(guild fluxer.Guild) discord.Guild {
 		ApproximateMemberCount:      guild.ApproximateMemberCount,
 		ApproximatePresenceCount:    guild.ApproximatePresenceCount,
 		NSFWLevel:                   guild.NSFWLevel,
+		Roles:                       []discord.Role{},
+		Emojis:                      []discord.Emoji{},
+		Stickers:                    []discord.Sticker{},
 	}
 }
 
