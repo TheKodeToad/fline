@@ -199,7 +199,9 @@ var errNonConvertiblePacket = errors.New("non-convertible packet")
 // packetToFluxer converts from a Discord packet to a Fluxer packet.
 func packetToFluxer(packet discord.Packet) (discord.Packet, error) {
 	switch packet.Opcode {
-	case discord.GatewayOpHeartbeat, discord.GatewayOpIdentify:
+	case discord.GatewayOpHeartbeat,
+		discord.GatewayOpIdentify,
+		discord.GatewayOpRequestGuildMembers:
 		return packet, nil
 	default:
 		return discord.Packet{}, errNonConvertiblePacket
@@ -247,7 +249,9 @@ func (s *session) handleClientMsg(msg wsMessage) error {
 
 func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (json.RawMessage, error) {
 	switch name {
-	case "GUILD_DELETE":
+	case "GUILD_DELETE",
+		// NOTE: the presences may need some transformation
+		"GUILD_MEMBERS_CHUNK":
 		// passthrough
 		return payload, nil
 	case "GUILD_CREATE":
@@ -336,7 +340,6 @@ func (s *session) handleFluxerMsg(msg wsMessage) error {
 	if err != nil {
 		slog.Warn("failed to log fluxer packet", slog.Any("err", err))
 	}
-
 
 	outPacket, err := packetToDiscord(inPacket, s.info)
 	if errors.Is(err, errNonConvertiblePacket) {
