@@ -126,7 +126,7 @@ type Message struct {
 	MentionEveryone  bool              `json:"mention_everyone"`
 	Mentions         []User            `json:"mentions"`
 	MentionRoles     []snowflake.ID    `json:"mention_roles"`
-	MentionChannels  []ChannelMention  `json:"mention_channels"`
+	MentionChannels  []ChannelMention  `json:"mention_channels,omitzero"`
 	Attachments      []Attachment      `json:"attachments"`
 	Embeds           []Embed           `json:"embeds"`
 	Reactions        []Reaction        `json:"reactions"`
