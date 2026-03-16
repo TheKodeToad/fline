@@ -29,7 +29,7 @@ func oauthRouter(conf *config.Config, client http.Client) chi.Router {
 
 		errResp, err := convFluxerErrorResponse(fluxerResp)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert application error response: %w", err)
+			return nil, fmt.Errorf("failed to convert fluxer error response: %w", err)
 		} else if errResp != nil {
 			return errResp, nil
 		}
@@ -37,7 +37,7 @@ func oauthRouter(conf *config.Config, client http.Client) chi.Router {
 		var inApp fluxer.Application
 		err = json.NewDecoder(fluxerResp.Body).Decode(&inApp)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode user response: %w", err)
+			return nil, fmt.Errorf("failed to decode fluxer response: %w", err)
 		}
 
 		outApp := convert.ApplicationToDiscord(inApp)

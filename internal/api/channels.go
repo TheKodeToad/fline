@@ -25,7 +25,7 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 			if errResp := makeUnmarshalErrorResponse(err); errResp != nil {
 				return errResp, nil
 			} else {
-				return nil, fmt.Errorf("failed to decode message payload: %w", err)
+				return nil, fmt.Errorf("failed to decode payload: %w", err)
 			}
 		}
 
@@ -33,7 +33,7 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 
 		fluxerPayload, err := json.Marshal(outCreate)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal converted message payload: %w", err)
+			return nil, fmt.Errorf("failed to marshal converted payload: %w", err)
 		}
 
 		fluxerResp, err := client.Do(
@@ -45,13 +45,13 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 			}).WithContext(r.Context()),
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to post message: %w", err)
+			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
 		}
 		writeDiscordHeaders(w.Header(), fluxerResp.Header)
 
 		errResp, err := convFluxerErrorResponse(fluxerResp)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert posted message error response: %w", err)
+			return nil, fmt.Errorf("failed to convert fluxer error response: %w", err)
 		} else if errResp != nil {
 			return errResp, nil
 		}
@@ -59,7 +59,7 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 		var inMessage fluxer.Message
 		err = json.NewDecoder(fluxerResp.Body).Decode(&inMessage)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode posted message response: %w", err)
+			return nil, fmt.Errorf("failed to decode fluxer response: %w", err)
 		}
 
 		outMessage := convert.MessageToDiscord(inMessage)
@@ -75,13 +75,13 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 			}).WithContext(r.Context()),
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to post message: %w", err)
+			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
 		}
 		writeDiscordHeaders(w.Header(), fluxerResp.Header)
 
 		errResp, err := convFluxerErrorResponse(fluxerResp)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert typing error response: %w", err)
+			return nil, fmt.Errorf("failed to convert fluxer error response: %w", err)
 		} else if errResp != nil {
 			return errResp, nil
 		}

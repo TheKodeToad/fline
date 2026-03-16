@@ -29,13 +29,13 @@ func gatewayRouter(conf *config.Config, client http.Client) chi.Router {
 			}).WithContext(r.Context()),
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to request gateway info: %w", err)
+			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
 		}
 		writeDiscordHeaders(w.Header(), fluxerResp.Header)
 
 		errResp, err := convFluxerErrorResponse(fluxerResp)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert gateway info response: %w", err)
+			return nil, fmt.Errorf("failed to convert fluxer response: %w", err)
 		} else if errResp != nil {
 			return errResp, nil
 		}
@@ -43,7 +43,7 @@ func gatewayRouter(conf *config.Config, client http.Client) chi.Router {
 		var inInfo discord.GatewayBotInfo
 		err = json.NewDecoder(fluxerResp.Body).Decode(&inInfo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode gateway info response: %w", err)
+			return nil, fmt.Errorf("failed to decode fluxer response: %w", err)
 		}
 
 		outInfo := inInfo
