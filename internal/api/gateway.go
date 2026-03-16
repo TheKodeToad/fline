@@ -22,27 +22,11 @@ func gatewayRouter(conf *config.Config, client http.Client) chi.Router {
 	}))
 
 	router.Get("/bot", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
-		fluxerHeaders, err := headersToFluxer(r.Header)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert header to fluxer: %w", err)
-		}
-
-		fluxerResp, err := client.Do(
-			(&http.Request{
-				Header: fluxerHeaders,
-				URL:    formatFluxerURL(conf, "/gateway/bot"),
-			}).WithContext(r.Context()),
-		)
+		fluxerResp, err := performFluxerRequest(w, r, client, &http.Request{
+			URL: formatFluxerURL(conf, "/gateway/bot"),
+		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
-		}
-		writeDiscordHeaders(w.Header(), fluxerResp.Header)
-
-		errResp, err := convFluxerErrorResponse(fluxerResp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert fluxer response: %w", err)
-		} else if errResp != nil {
-			return errResp, nil
 		}
 
 		var inInfo discord.GatewayBotInfo

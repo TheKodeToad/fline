@@ -36,29 +36,13 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 			return nil, fmt.Errorf("failed to marshal converted payload: %w", err)
 		}
 
-		fluxerHeaders, err := headersToFluxer(r.Header)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert header to fluxer: %w", err)
-		}
-
-		fluxerResp, err := client.Do(
-			(&http.Request{
-				Method: "POST",
-				Body:   io.NopCloser(bytes.NewReader(fluxerPayload)),
-				Header: fluxerHeaders,
-				URL:    formatFluxerURL(conf, "/channels/%s/messages", r.PathValue("id")),
-			}).WithContext(r.Context()),
-		)
+		fluxerResp, err := performFluxerRequest(w, r, client, &http.Request{
+			Method: "POST",
+			URL:    formatFluxerURL(conf, "/channels/%s/messages", r.PathValue("id")),
+			Body:   io.NopCloser(bytes.NewReader(fluxerPayload)),
+		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
-		}
-		writeDiscordHeaders(w.Header(), fluxerResp.Header)
-
-		errResp, err := convFluxerErrorResponse(fluxerResp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert fluxer error response: %w", err)
-		} else if errResp != nil {
-			return errResp, nil
 		}
 
 		var inMessage fluxer.Message
@@ -72,28 +56,12 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 	}))
 
 	router.Post("/{id}/typing", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
-		fluxerHeaders, err := headersToFluxer(r.Header)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert header to fluxer: %w", err)
-		}
-
-		fluxerResp, err := client.Do(
-			(&http.Request{
-				Method: "POST",
-				Header: fluxerHeaders,
-				URL:    formatFluxerURL(conf, "/channels/%s/typing", r.PathValue("id")),
-			}).WithContext(r.Context()),
-		)
+		_, err := performFluxerRequest(w, r, client, &http.Request{
+			Method: "POST",
+			URL:    formatFluxerURL(conf, "/channels/%s/typing", r.PathValue("id")),
+		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
-		}
-		writeDiscordHeaders(w.Header(), fluxerResp.Header)
-
-		errResp, err := convFluxerErrorResponse(fluxerResp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert fluxer error response: %w", err)
-		} else if errResp != nil {
-			return errResp, nil
 		}
 
 		return apiNoContentResponse{}, nil

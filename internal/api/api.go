@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/TheKodeToad/fline/internal/convert"
@@ -32,7 +33,7 @@ func Routes(conf *config.Config) chi.Router {
 	})
 
 	return router
-}	
+}
 
 func formatFluxerURL(conf *config.Config, format string, a ...any) *url.URL {
 	return conf.FluxerAPIURL.JoinPath(
@@ -41,25 +42,92 @@ func formatFluxerURL(conf *config.Config, format string, a ...any) *url.URL {
 	)
 }
 
-func headersToFluxer(header http.Header) (http.Header, error) {
-	result := header.Clone()
-	
-	if auditLogReason := result.Get("X-Audit-Log-Reason"); auditLogReason != "" {
-		// FIXME: this is probably a bad idea - some characters may be invalid 
-		// in headers and it's up to Go's implementation what happens
-		// I am having trouble finding out which characters are legal and how best to sanitise them
-		unescaped, err := url.PathUnescape(auditLogReason)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unescape audit log reason: %w", err)
-		}
+// performFluxerRequest performs a HTTP request to Fluxer applying headers from the passed [http.Request] and to the passed [http.ResponseWriter].
+func performFluxerRequest(
+	serverW http.ResponseWriter,
+	serverR *http.Request,
+	client http.Client,
+	req *http.Request,
+) (*http.Response, error) {
+	// it might be a bit confusing to have so many things done by one function
+	// TODO: maybe something more declarative (where you just specify transformation functions) would be better
+	req = req.WithContext(serverR.Context())
 
-		result.Set("X-Audit-Log-Reason", unescaped)
+	if req.Header == nil {
+		req.Header = http.Header{}
+	}
+	requestHeadersToFluxer(req.Header, serverR.Header)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
 	}
 
-	return result, nil
+	if resp.StatusCode >= 400 && resp.StatusCode < 600 {
+		// it's an error response
+		if resp.Header.Get("Content-Type") != "application/json" {
+			return nil, apiError{status: resp.StatusCode}
+		}
+
+		var errObject fluxer.APIError
+		err := json.NewDecoder(resp.Body).Decode(&errObject)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode error response: %w", err)
+		}
+
+		return nil, apiError{
+			APIError: convert.APIErrorToDiscord(errObject),
+			status:   resp.StatusCode,
+		}
+	}
+
+	responseHeadersToDiscord(serverW.Header(), resp.Header)
+	return resp, err
 }
 
-func writeDiscordHeaders(outHeader http.Header, inHeader http.Header) {
+func removeIllegalHeaderValueChars(val string) string {
+	var builder strings.Builder
+	builder.Grow(len(val))
+
+	for _, ch := range []byte(val) {
+		// NOTE: based on httpguts.ValidHeaderFieldValue which appears to be what is used internally
+		// if the behaviour of this function changes or this does not match, it might make the request fail
+		if (ch < ' ' && ch != '\t') || ch == 0x7F {
+			builder.WriteByte(' ')
+		} else {
+			builder.WriteByte(ch)
+		}
+	}
+
+	return builder.String()
+}
+
+func requestHeadersToFluxer(out http.Header, headers http.Header) {
+	passthrough := []string{
+		"Content-Type",
+		"Authorization",
+	}
+	for _, key := range passthrough {
+		if len(headers.Values(key)) != 0 {
+			out.Add(key, headers.Get(key))
+		}
+	}
+
+	if auditLogReason := headers.Get("X-Audit-Log-Reason"); auditLogReason != "" {
+		unescaped, err := url.PathUnescape(auditLogReason)
+		if err != nil {
+			// NOTE: Discord ignores invalid escape sequences
+			// this approximates the behaviour
+			unescaped = auditLogReason
+		}
+
+		unescaped = removeIllegalHeaderValueChars(unescaped)
+
+		out.Set("X-Audit-Log-Reason", unescaped)
+	}
+}
+
+func responseHeadersToDiscord(out http.Header, headers http.Header) {
 	passthrough := []string{
 		"X-RateLimit-Limit",
 		"X-RateLimit-Remaining",
@@ -69,31 +137,10 @@ func writeDiscordHeaders(outHeader http.Header, inHeader http.Header) {
 		"X-RateLimit-Scope",
 	}
 	for _, key := range passthrough {
-		if len(inHeader.Values(key)) != 0 {
-			outHeader.Add(key, inHeader.Get(key))
+		if len(headers.Values(key)) != 0 {
+			out.Add(key, headers.Get(key))
 		}
 	}
-}
-
-func convFluxerErrorResponse(resp *http.Response) (any, error) {
-	if resp.StatusCode < 400 || resp.StatusCode >= 600 {
-		return nil, nil
-	}
-
-	if resp.Header.Get("Content-Type") != "application/json" {
-		return apiError{status: resp.StatusCode}, nil
-	}
-
-	var errObject fluxer.APIError
-	err := json.NewDecoder(resp.Body).Decode(&errObject)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode error response: %w", err)
-	}
-
-	return apiError{
-		APIError: convert.APIErrorToDiscord(errObject),
-		status:   resp.StatusCode,
-	}, nil
 }
 
 // makeUnmarshalErrorResponse creates an approapriate response if the passed error indicates malformed JSON.
@@ -122,7 +169,6 @@ func makeUnmarshalErrorResponse(err error) any {
 	}
 
 	// FIXME: handle io.EOF, as well as unexpected EOF (which is a different error of type *errors.errorString :/)
-
 	return nil
 }
 
@@ -131,9 +177,20 @@ type apiError struct {
 	status int
 }
 
+func (e apiError) Error() string {
+	return fmt.Sprintf(
+		"API Error: '%s' (code: %d; status: %d)",
+		e.Message,
+		e.Code,
+		e.status,
+	)
+}
+
 type apiNoContentResponse struct{}
 
-func apiHandler(handler func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error)) http.HandlerFunc {
+type apiHandlerFunc func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error)
+
+func apiHandler(handler apiHandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := slog.Default().With(slog.Any("url", r.URL.String()))
 
@@ -144,27 +201,26 @@ func apiHandler(handler func(logger *slog.Logger, w http.ResponseWriter, r *http
 		status := http.StatusOK
 		respObject, err := handler(logger, w, r)
 		if err != nil {
-			logger.Warn("unexpected error in handler", slog.Any("err", err))
+			var apiErr apiError
+			if errors.As(err, &apiErr) {
+				respObject = apiErr
+			} else {
+				logger.Warn("unexpected error in handler", slog.Any("err", err))
 
-			status = http.StatusInternalServerError
-			respObject = apiError{
-				APIError: discord.APIError{
-					Code:    discord.APIErrorGeneral,
-					Message: formatStatus(status),
-				},
-				status: status,
+				status = http.StatusInternalServerError
+				respObject = apiError{
+					APIError: discord.APIError{
+						Code:    discord.APIErrorGeneral,
+						Message: formatStatus(status),
+					},
+					status: status,
+				}
 			}
-		} else if apiErr, ok := respObject.(apiError); ok {
-			if apiErr.Message == "" {
-				apiErr.Message = formatStatus(apiErr.status)
-			}
-
-			status = apiErr.status
-		}
-
-		if _, ok := respObject.(apiNoContentResponse); ok {
+		} else if _, ok := respObject.(apiNoContentResponse); ok {
 			w.WriteHeader(http.StatusNoContent)
 			return
+		} else if _, ok := respObject.(apiError); ok {
+			panic("handler returned apiError as response. it should be returned as the latter value (error).")
 		}
 
 		resp, err := json.Marshal(respObject)
