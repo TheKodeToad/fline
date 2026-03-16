@@ -16,6 +16,23 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+func Routes(conf *config.Config) chi.Router {
+	var client http.Client
+
+	router := chi.NewRouter()
+
+	router.Use(middleware.Recoverer)
+
+	router.Route("/v{version}", func(router chi.Router) {
+		router.Mount("/channels", channelsRouter(conf, client))
+		router.Mount("/gateway", gatewayRouter(conf, client))
+		router.Mount("/oauth2", oauthRouter(conf, client))
+		router.Mount("/users", usersRouter(conf, client))
+	})
+
+	return router
+}
+
 func formatFluxerURL(conf *config.Config, format string, a ...any) *url.URL {
 	return conf.FluxerAPIURL.JoinPath(
 		"v"+conf.FluxerAPIVersion,
@@ -27,7 +44,7 @@ func headersToFluxer(header http.Header) http.Header {
 	return header
 }
 
-func headersToDiscord(outHeader http.Header, inHeader http.Header) {
+func writeDiscordHeaders(outHeader http.Header, inHeader http.Header) {
 	passthrough := []string{
 		"X-RateLimit-Limit",
 		"X-RateLimit-Remaining",
@@ -99,13 +116,9 @@ type apiError struct {
 
 type apiNoContentResponse struct{}
 
-func makeLogger(r *http.Request) *slog.Logger {
-	return slog.Default().With(slog.Any("url", r.URL))
-}
-
 func apiHandler(handler func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := makeLogger(r)
+		logger := slog.Default().With(slog.Any("url", r.URL))
 
 		formatStatus := func(status int) string {
 			return fmt.Sprintf("%d %s", status, http.StatusText(status))
@@ -151,21 +164,4 @@ func apiHandler(handler func(logger *slog.Logger, w http.ResponseWriter, r *http
 			return
 		}
 	}
-}
-
-func Routes(conf *config.Config) chi.Router {
-	var client http.Client
-
-	router := chi.NewRouter()
-
-	router.Use(middleware.Recoverer)
-
-	router.Route("/v{version}", func(router chi.Router) {
-		router.Mount("/channels", channelsRouter(conf, client))
-		router.Mount("/gateway", gatewayRouter(conf, client))
-		router.Mount("/oauth2", oauthRouter(conf, client))
-		router.Mount("/users", usersRouter(conf, client))
-	})
-
-	return router
 }

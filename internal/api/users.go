@@ -26,7 +26,7 @@ func usersRouter(conf *config.Config, client http.Client) chi.Router {
 		if err != nil {
 			panic(fmt.Errorf("failed to request user: %w", err))
 		}
-		headersToDiscord(w.Header(), fluxerResp.Header)
+		writeDiscordHeaders(w.Header(), fluxerResp.Header)
 
 		errResp, err := convFluxerErrorResponse(fluxerResp)
 		if err != nil {
@@ -55,7 +55,7 @@ func usersRouter(conf *config.Config, client http.Client) chi.Router {
 		if err != nil {
 			panic(fmt.Errorf("failed to request user: %w", err))
 		}
-		headersToDiscord(w.Header(), fluxerResp.Header)
+		writeDiscordHeaders(w.Header(), fluxerResp.Header)
 
 		errResp, err := convFluxerErrorResponse(fluxerResp)
 		if err != nil {
