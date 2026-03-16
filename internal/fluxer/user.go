@@ -28,6 +28,12 @@ type UserPartial struct {
 	Flags         UserFlags    `json:"flags"`
 }
 
+const (
+	DeletedUserUsername = "DeletedUser"
+	DeletedUserDiscrim  = "0000"
+	DeletedUserID       = 1
+)
+
 type UserPrivate struct {
 	UserPartial
 	AccentColor *uint   `json:"accent_color"`
