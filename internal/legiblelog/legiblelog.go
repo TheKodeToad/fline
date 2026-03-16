@@ -17,20 +17,24 @@ import (
 // Handler is a [slog.Handler] which outputs Records in a nicely formatted manner.
 // It is designed for development and may be innefficient.
 type Handler struct {
-	base      *slog.JSONHandler
+	base      slog.Handler
 	output    io.Writer
-	bytes     bytes.Buffer
-	bytesLock sync.Mutex
+	bytes     *bytes.Buffer
+	bytesLock *sync.Mutex
 }
 
 // should implement slog.Handler
 var _ slog.Handler = new(Handler)
 
 func NewHandler(w io.Writer, opts *slog.HandlerOptions) *Handler {
-	var h Handler
-	h.base = slog.NewJSONHandler(&h.bytes, opts)
-	h.output = w
-	return &h
+	bytes := new(bytes.Buffer)
+
+	return &Handler{
+		base: slog.NewJSONHandler(bytes, opts),
+		output: w,
+		bytes: bytes,
+		bytesLock: new(sync.Mutex),
+	}
 }
 
 func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
@@ -89,7 +93,9 @@ func (h *Handler) Handle(ctx context.Context, record slog.Record) error {
 }
 
 func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return h.base.WithAttrs(attrs)
+	var clone = *h
+	clone.base = h.base.WithAttrs(attrs)
+	return &clone
 }
 
 func (h *Handler) WithGroup(name string) slog.Handler {

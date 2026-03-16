@@ -118,7 +118,7 @@ type apiNoContentResponse struct{}
 
 func apiHandler(handler func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logger := slog.Default().With(slog.Any("url", r.URL))
+		logger := slog.Default().With(slog.Any("url", r.URL.String()))
 
 		formatStatus := func(status int) string {
 			return fmt.Sprintf("%d %s", status, http.StatusText(status))
@@ -127,7 +127,7 @@ func apiHandler(handler func(logger *slog.Logger, w http.ResponseWriter, r *http
 		status := http.StatusOK
 		respObject, err := handler(logger, w, r)
 		if err != nil {
-			slog.Warn("unexpected error", slog.Any("err", err))
+			logger.Warn("unexpected error in handler", slog.Any("err", err))
 
 			status = http.StatusInternalServerError
 			respObject = apiError{
