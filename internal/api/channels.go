@@ -66,5 +66,28 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 		return outMessage, nil
 	}))
 
+	router.Post("/{id}/typing", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
+		fluxerResp, err := client.Do(
+			(&http.Request{
+				Method: "POST",
+				Header: headersToFluxer(r.Header),
+				URL:    formatFluxerURL(conf, "/channels/%s/typing", r.PathValue("id")),
+			}).WithContext(r.Context()),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to post message: %w", err)
+		}
+		headersToDiscord(w.Header(), fluxerResp.Header)
+
+		errResp, err := convFluxerErrorResponse(fluxerResp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert typing error response: %w", err)
+		} else if errResp != nil {
+			return errResp, nil
+		}
+
+		return apiNoContentResponse{}, nil
+	}))
+
 	return router
 }

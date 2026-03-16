@@ -71,7 +71,7 @@ func makeUnmarshalErrorResponse(err error) any {
 	if errors.As(err, &syntaxErr) {
 		return apiError{
 			APIError: discord.APIError{
-				Code: discord.APIErrorRequestBodyHasInvalidJSON,
+				Code:    discord.APIErrorRequestBodyHasInvalidJSON,
 				Message: "The request body contains invalid JSON.",
 			},
 			status: http.StatusBadRequest,
@@ -82,7 +82,7 @@ func makeUnmarshalErrorResponse(err error) any {
 	if errors.As(err, &fieldErr) {
 		return apiError{
 			APIError: discord.APIError{
-				Code: discord.APIErrorInvalidFormBody,
+				Code:    discord.APIErrorInvalidFormBody,
 				Message: "Invalid Form Body",
 			},
 			status: http.StatusBadRequest,
@@ -96,6 +96,8 @@ type apiError struct {
 	discord.APIError
 	status int
 }
+
+type apiNoContentResponse struct{}
 
 func makeLogger(r *http.Request) *slog.Logger {
 	return slog.Default().With(slog.Any("url", r.URL))
@@ -130,13 +132,18 @@ func apiHandler(handler func(logger *slog.Logger, w http.ResponseWriter, r *http
 			status = apiErr.status
 		}
 
+		if _, ok := respObject.(apiNoContentResponse); ok {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		resp, err := json.Marshal(respObject)
 		if err != nil {
 			logger.Warn("failed to marshal response object", slog.Any("err", err))
 			return
 		}
 
-		w.Header().Add("Content-type", "application/json")
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(status)
 		_, err = w.Write(resp)
 		if err != nil {
