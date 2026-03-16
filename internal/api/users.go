@@ -34,9 +34,9 @@ func usersRouter(conf *config.Config, client http.Client) chi.Router {
 		return outUser, nil
 	}))
 
-	router.Get("/{id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
+	router.Get("/{user_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
 		fluxerResp, err := performFluxerRequest(w, r, client, &http.Request{
-			URL: formatFluxerURL(conf, "/users/%s", r.PathValue("id")),
+			URL: formatFluxerURL(conf, "/users/%s", r.PathValue("user_id")),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
