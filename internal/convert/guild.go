@@ -47,8 +47,6 @@ func GuildMemberToDiscord(member fluxer.GuildMember) discord.GuildMember {
 		JoinedAt:                   member.JoinedAt,
 		Deaf:                       member.Deaf,
 		Mute:                       member.Mute,
-		Flags:                      member.Flags,
-		Pending:                    member.Pending,
 		CommunicationDisabledUntil: member.CommunicationDisabledUntil,
 	}
 }

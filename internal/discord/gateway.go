@@ -121,6 +121,16 @@ type GuildCreateEvent struct {
 	Channels    []Channel     `json:"channels"`
 }
 
+type GuildMembersChunkEvent struct {
+	GuildID    snowflake.ID   `json:"guild_id"`
+	Members    []GuildMember  `json:"members"`
+	ChunkIndex int            `json:"chunk_index"`
+	ChunkCount int            `json:"chunk_count"`
+	NotFound   []snowflake.ID `json:"not_found,omitzero"`
+	Presences  []todo         `json:"presences,omitzero"`
+	Nonce      *string        `json:"nonce,omitempty"`
+}
+
 type MessageCreateEvent struct {
 	Message
 	GuildID *snowflake.ID `json:"guild_id,omitempty"`

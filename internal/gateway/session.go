@@ -249,9 +249,7 @@ func (s *session) handleClientMsg(msg wsMessage) error {
 
 func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (json.RawMessage, error) {
 	switch name {
-	case "GUILD_DELETE",
-		// NOTE: the presences may need some transformation
-		"GUILD_MEMBERS_CHUNK":
+	case "GUILD_DELETE":
 		// passthrough
 		return payload, nil
 	case "GUILD_CREATE":
@@ -293,6 +291,16 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		}
 
 		outEvent := convert.MessageCreateEventToDiscord(inEvent)
+		return json.Marshal(outEvent)
+	case "GUILD_MEMBERS_CHUNK":
+		var inEvent fluxer.GuildMembersChunkEvent
+
+		err := json.Unmarshal(payload, &inEvent)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outEvent := convert.GuildMembersChunkEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
 	default:
 		return json.RawMessage{}, errNonConvertiblePacket

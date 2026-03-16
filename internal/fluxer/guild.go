@@ -42,7 +42,5 @@ type GuildMember struct {
 	JoinedAt                   *string        `json:"joined_at"`
 	Deaf                       bool           `json:"deaf"`
 	Mute                       bool           `json:"mute"`
-	Flags                      uint           `json:"flags"`
-	Pending                    *bool          `json:"pending,omitempty"`
 	CommunicationDisabledUntil *string        `json:"communication_disabled_until"`
 }

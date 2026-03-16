@@ -60,6 +60,23 @@ func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreat
 	}
 }
 
+func GuildMembersChunkEventToDiscord(event fluxer.GuildMembersChunkEvent) discord.GuildMembersChunkEvent {
+	members := make([]discord.GuildMember, 0, len(event.Members))
+	for _, member := range event.Members {
+		members = append(members, GuildMemberToDiscord(member))
+	}
+
+	return discord.GuildMembersChunkEvent{
+		GuildID:    event.GuildID,
+		Members:    members,
+		ChunkIndex: event.ChunkIndex,
+		ChunkCount: event.ChunkCount,
+		NotFound:   event.NotFound,
+		Presences:  event.Presences,
+		Nonce:      event.Nonce,
+	}
+}
+
 func MessageCreateEventToDiscord(event fluxer.MessageCreateEvent) discord.MessageCreateEvent {
 	var member *discord.GuildMember
 	if event.Member != nil {
