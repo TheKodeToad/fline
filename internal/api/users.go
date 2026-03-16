@@ -52,13 +52,13 @@ func usersRouter(conf *config.Config, client http.Client) chi.Router {
 		if inUser.Username == fluxer.DeletedUserUsername &&
 			inUser.Discriminator == fluxer.DeletedUserDiscrim &&
 			inUser.ID != fluxer.DeletedUserID {
-			return apiError{
+			return nil, apiError{
 				APIError: discord.APIError{
 					Code:    discord.APIErrorUnknownUser,
 					Message: "Unknown User",
 				},
 				status: http.StatusNotFound,
-			}, nil
+			}
 		}
 
 		outUser := convert.UserPartialToDiscord(inUser)

@@ -22,11 +22,7 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 		var inCreate discord.MessageCreate
 		err := json.NewDecoder(r.Body).Decode(&inCreate)
 		if err != nil {
-			if errResp := makeUnmarshalErrorResponse(err); errResp != nil {
-				return errResp, nil
-			} else {
-				return nil, fmt.Errorf("failed to decode payload: %w", err)
-			}
+			return nil, fmt.Errorf("failed to decode payload: %w", mapUnmarshalError(err))
 		}
 
 		outCreate := convert.MessageCreateToFluxer(inCreate)

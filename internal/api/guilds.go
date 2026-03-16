@@ -42,11 +42,7 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 		var inCreate discord.GuildBanCreate
 		err := json.NewDecoder(r.Body).Decode(&inCreate)
 		if !errors.Is(err, io.EOF) && err != nil {
-			if errResp := makeUnmarshalErrorResponse(err); errResp != nil {
-				return errResp, nil
-			} else {
-				return nil, fmt.Errorf("failed to decode payload: %w", err)
-			}
+			return nil, fmt.Errorf("failed to decode payload: %w", mapUnmarshalError(err))
 		}
 
 		outCreate := convert.GuildBanCreateToFluxer(inCreate)
@@ -81,7 +77,7 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 	router.Put("/{guild_id}/members/{user_id}/roles/{role_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error) {
 		_, err = performFluxerRequest(w, r, client, &http.Request{
 			Method: "PUT",
-			URL: formatFluxerURL(conf, "/guilds/%s/members/%s/roles/%s", r.PathValue("guild_id"), r.PathValue("user_id"), r.PathValue("role_id")),
+			URL:    formatFluxerURL(conf, "/guilds/%s/members/%s/roles/%s", r.PathValue("guild_id"), r.PathValue("user_id"), r.PathValue("role_id")),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
@@ -93,7 +89,7 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 	router.Delete("/{guild_id}/members/{user_id}/roles/{role_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error) {
 		_, err = performFluxerRequest(w, r, client, &http.Request{
 			Method: "DELETE",
-			URL: formatFluxerURL(conf, "/guilds/%s/members/%s/roles/%s", r.PathValue("guild_id"), r.PathValue("user_id"), r.PathValue("role_id")),
+			URL:    formatFluxerURL(conf, "/guilds/%s/members/%s/roles/%s", r.PathValue("guild_id"), r.PathValue("user_id"), r.PathValue("role_id")),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)

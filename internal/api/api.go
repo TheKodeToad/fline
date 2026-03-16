@@ -148,9 +148,8 @@ func responseHeadersToDiscord(out http.Header, headers http.Header) {
 	}
 }
 
-// makeUnmarshalErrorResponse creates an approapriate response if the passed error indicates malformed JSON.
-// If it does not, nil is returned and it is probably better to treat it as an internal server error.
-func makeUnmarshalErrorResponse(err error) any {
+// mapUnmarshalError creates an approapriate response if the passed error indicates malformed JSON.
+func mapUnmarshalError(err error) error {
 	var syntaxErr *json.SyntaxError
 	if errors.As(err, &syntaxErr) {
 		return apiError{
@@ -174,7 +173,7 @@ func makeUnmarshalErrorResponse(err error) any {
 	}
 
 	// FIXME: handle io.EOF, as well as unexpected EOF (which is a different error of type *errors.errorString :/)
-	return nil
+	return err
 }
 
 type apiError struct {
