@@ -74,8 +74,8 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 		return apiNoContentResponse{}, nil
 	}))
 
-	router.Put("/{guild_id}/members/{user_id}/roles/{role_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error) {
-		_, err = performFluxerRequest(w, r, client, &http.Request{
+	router.Put("/{guild_id}/members/{user_id}/roles/{role_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
+		_, err := performFluxerRequest(w, r, client, &http.Request{
 			Method: "PUT",
 			URL:    formatFluxerURL(conf, "/guilds/%s/members/%s/roles/%s", r.PathValue("guild_id"), r.PathValue("user_id"), r.PathValue("role_id")),
 		})
@@ -86,8 +86,8 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 		return apiNoContentResponse{}, nil
 	}))
 
-	router.Delete("/{guild_id}/members/{user_id}/roles/{role_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error) {
-		_, err = performFluxerRequest(w, r, client, &http.Request{
+	router.Delete("/{guild_id}/members/{user_id}/roles/{role_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
+		_, err := performFluxerRequest(w, r, client, &http.Request{
 			Method: "DELETE",
 			URL:    formatFluxerURL(conf, "/guilds/%s/members/%s/roles/%s", r.PathValue("guild_id"), r.PathValue("user_id"), r.PathValue("role_id")),
 		})

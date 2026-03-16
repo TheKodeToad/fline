@@ -192,7 +192,7 @@ func (e apiError) Error() string {
 
 type apiNoContentResponse struct{}
 
-type apiHandlerFunc func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error)
+type apiHandlerFunc func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error)
 
 func apiHandler(handler apiHandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -63,6 +63,18 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 		return apiNoContentResponse{}, nil
 	}))
 
+	router.Put("/{channel_id}/messages/{message_id}/reactions/{emoji_id}/@me", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
+		_, err := performFluxerRequest(w, r, client, &http.Request{
+			Method: "PUT",
+			URL:    formatFluxerURL(conf, "/channels/%s/messages/%s/reactions/%s/@me", r.PathValue("channel_id"), r.PathValue("message_id"), r.PathValue("emoji_id")),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
+		}
+
+		return apiNoContentResponse{}, nil
+	}))
+
 	router.Post("/{channel_id}/typing", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
 		_, err := performFluxerRequest(w, r, client, &http.Request{
 			Method: "POST",
