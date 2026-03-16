@@ -1,4 +1,4 @@
-package fine
+package fline
 
 const GatewayPath = "/gateway"
 

@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
-	fine "github.com/TheKodeToad/fline/internal"
+	fline "github.com/TheKodeToad/fline/internal"
 	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/TheKodeToad/fline/internal/convert"
 	"github.com/TheKodeToad/fline/internal/discord"
@@ -275,7 +275,7 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		inEvent.Version = info.apiVersion
 
 		if inEvent.ResumeGatewayURL == nil {
-			inEvent.ResumeGatewayURL = misc.New(fine.GatewayURL(info.host))
+			inEvent.ResumeGatewayURL = misc.New(fline.GatewayURL(info.host))
 		}
 
 		outEvent := convert.ReadyEventToDiscord(inEvent)

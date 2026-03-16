@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	fine "github.com/TheKodeToad/fline/internal"
+	fline "github.com/TheKodeToad/fline/internal"
 	"github.com/TheKodeToad/fline/internal/api"
 	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/TheKodeToad/fline/internal/gateway"
@@ -37,7 +37,7 @@ func main() {
 	router.Mount("/api", api.Routes(&conf))
 
 	var gateway gateway.Gateway
-	router.Get(fine.GatewayPath, func(w http.ResponseWriter, r *http.Request) {
+	router.Get(fline.GatewayPath, func(w http.ResponseWriter, r *http.Request) {
 		gateway.ServeHTTP(&conf, w, r)
 	})
 

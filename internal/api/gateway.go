@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	fine "github.com/TheKodeToad/fline/internal"
+	fline "github.com/TheKodeToad/fline/internal"
 	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/go-chi/chi/v5"
@@ -18,7 +18,7 @@ func gatewayRouter(conf *config.Config, client http.Client) chi.Router {
 	router.Get("/", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
 		return struct {
 			URL string `json:"url"`
-		}{fine.GatewayURL(r.Host)}, nil
+		}{fline.GatewayURL(r.Host)}, nil
 	}))
 
 	router.Get("/bot", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
@@ -36,7 +36,7 @@ func gatewayRouter(conf *config.Config, client http.Client) chi.Router {
 		}
 
 		outInfo := inInfo
-		outInfo.URL = fine.GatewayURL(r.Host)
+		outInfo.URL = fline.GatewayURL(r.Host)
 		return outInfo, nil
 	}))
 

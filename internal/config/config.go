@@ -73,14 +73,14 @@ func Load() (Config, error) {
 		result.FluxerAPIVersion = v
 	}
 
-	if v := lookup("FINE_LISTEN_ADDR"); v != "" {
+	if v := lookup("FLINE_LISTEN_ADDR"); v != "" {
 		result.ListenAddr = v
 	}
 
-	if v := lookup("FINE_LOG_LEVEL"); v != "" {
+	if v := lookup("FLINE_LOG_LEVEL"); v != "" {
 		err := result.LogLevel.UnmarshalText([]byte(v))
 		if err != nil {
-			return Config{}, fmt.Errorf("failed to parse FINE_LOG_LEVEL: %w", err)
+			return Config{}, fmt.Errorf("failed to parse FLINE_LOG_LEVEL: %w", err)
 		}
 	}
 
