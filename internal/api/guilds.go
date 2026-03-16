@@ -47,13 +47,35 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 			return nil, fmt.Errorf("failed to marshal converted payload: %w", err)
 		}
 
-		_, err = performFluxerRequest(w, r, client,
-			&http.Request{
-				Method: "PUT",
-				Body:   io.NopCloser(bytes.NewReader(fluxerPayload)),
-				URL:    formatFluxerURL(conf, "/guilds/%s/bans/%s", r.PathValue("guild_id"), r.PathValue("user_id")),
-			},
-		)
+		_, err = performFluxerRequest(w, r, client, &http.Request{
+			Method: "PUT",
+			Body:   io.NopCloser(bytes.NewReader(fluxerPayload)),
+			URL:    formatFluxerURL(conf, "/guilds/%s/bans/%s", r.PathValue("guild_id"), r.PathValue("user_id")),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
+		}
+
+		return apiNoContentResponse{}, nil
+	}))
+
+	router.Put("/{guild_id}/members/{user_id}/roles/{role_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error) {
+		_, err = performFluxerRequest(w, r, client, &http.Request{
+			Method: "PUT",
+			URL: formatFluxerURL(conf, "/guilds/%s/members/%s/roles/%s", r.PathValue("guild_id"), r.PathValue("user_id"), r.PathValue("role_id")),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
+		}
+
+		return apiNoContentResponse{}, nil
+	}))
+
+	router.Delete("/{guild_id}/members/{user_id}/roles/{role_id}", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error) {
+		_, err = performFluxerRequest(w, r, client, &http.Request{
+			Method: "DELETE",
+			URL: formatFluxerURL(conf, "/guilds/%s/members/%s/roles/%s", r.PathValue("guild_id"), r.PathValue("user_id"), r.PathValue("role_id")),
+		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
 		}
