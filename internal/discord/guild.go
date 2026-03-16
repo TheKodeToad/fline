@@ -47,3 +47,8 @@ type GuildMember struct {
 	Flags                      uint           `json:"flags"`
 	CommunicationDisabledUntil *string        `json:"communication_disabled_until"`
 }
+
+type GuildBanCreate struct {
+	DeleteMessageDays    *int `json:"delete_message_days,omitempty"`
+	DeleteMessageSeconds *int `json:"delete_message_seconds,omitempty"`
+}

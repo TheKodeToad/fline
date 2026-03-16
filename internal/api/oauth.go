@@ -16,9 +16,14 @@ func oauthRouter(conf *config.Config, client http.Client) chi.Router {
 	router := chi.NewRouter()
 
 	router.Get("/applications/@me", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
+		fluxerHeaders, err := headersToFluxer(r.Header)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert header to fluxer: %w", err)
+		}
+
 		fluxerResp, err := client.Do(
 			(&http.Request{
-				Header: headersToFluxer(r.Header),
+				Header: fluxerHeaders,
 				URL:    formatFluxerURL(conf, "/applications/@me"),
 			}).WithContext(r.Context()),
 		)

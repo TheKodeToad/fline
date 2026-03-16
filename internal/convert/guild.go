@@ -1,6 +1,8 @@
 package convert
 
 import (
+	"math"
+
 	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/TheKodeToad/fline/internal/fluxer"
 	"github.com/TheKodeToad/fline/internal/misc"
@@ -49,4 +51,19 @@ func GuildMemberToDiscord(member fluxer.GuildMember) discord.GuildMember {
 		Mute:                       member.Mute,
 		CommunicationDisabledUntil: member.CommunicationDisabledUntil,
 	}
+}
+
+func GuildBanCreateToFluxer(create discord.GuildBanCreate) fluxer.GuildBanCreate {
+	var deleteMessageDays int
+	// TODO: check which takes precidence on Discord and update it accordingly if necessary
+	if create.DeleteMessageSeconds != nil {
+		const secsInDay = 60 * 60 * 24
+
+		fractionalDays := float64(*create.DeleteMessageSeconds) / secsInDay
+		deleteMessageDays = int(math.Round(float64(fractionalDays)))
+	} else if create.DeleteMessageDays != nil {
+		deleteMessageDays = *create.DeleteMessageDays
+	}
+
+	return fluxer.GuildBanCreate{DeleteMessageDays: deleteMessageDays}
 }

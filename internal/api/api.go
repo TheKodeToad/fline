@@ -26,12 +26,13 @@ func Routes(conf *config.Config) chi.Router {
 	router.Route("/v{version}", func(router chi.Router) {
 		router.Mount("/channels", channelsRouter(conf, client))
 		router.Mount("/gateway", gatewayRouter(conf, client))
+		router.Mount("/guilds", guildsRouter(conf, client))
 		router.Mount("/oauth2", oauthRouter(conf, client))
 		router.Mount("/users", usersRouter(conf, client))
 	})
 
 	return router
-}
+}	
 
 func formatFluxerURL(conf *config.Config, format string, a ...any) *url.URL {
 	return conf.FluxerAPIURL.JoinPath(
@@ -40,8 +41,22 @@ func formatFluxerURL(conf *config.Config, format string, a ...any) *url.URL {
 	)
 }
 
-func headersToFluxer(header http.Header) http.Header {
-	return header
+func headersToFluxer(header http.Header) (http.Header, error) {
+	result := header.Clone()
+	
+	if auditLogReason := result.Get("X-Audit-Log-Reason"); auditLogReason != "" {
+		// FIXME: this is probably a bad idea - some characters may be invalid 
+		// in headers and it's up to Go's implementation what happens
+		// I am having trouble finding out which characters are legal and how best to sanitise them
+		unescaped, err := url.PathUnescape(auditLogReason)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unescape audit log reason: %w", err)
+		}
+
+		result.Set("X-Audit-Log-Reason", unescaped)
+	}
+
+	return result, nil
 }
 
 func writeDiscordHeaders(outHeader http.Header, inHeader http.Header) {
@@ -105,6 +120,8 @@ func makeUnmarshalErrorResponse(err error) any {
 			status: http.StatusBadRequest,
 		}
 	}
+
+	// FIXME: handle io.EOF, as well as unexpected EOF (which is a different error of type *errors.errorString :/)
 
 	return nil
 }

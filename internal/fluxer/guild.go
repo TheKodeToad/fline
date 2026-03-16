@@ -44,3 +44,8 @@ type GuildMember struct {
 	Mute                       bool           `json:"mute"`
 	CommunicationDisabledUntil *string        `json:"communication_disabled_until"`
 }
+
+type GuildBanCreate struct {
+	DeleteMessageDays int    `json:"delete_message_days"`
+	Reason            string `json:"reason"`
+}

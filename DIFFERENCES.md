@@ -16,20 +16,26 @@ Permissions:
 
 ## REST API
 
-Allowed mentions:
+`allowed_mentions`:
 - The mere precense of the object does not disable any mentions, unlike Discord where `{}` disables (to my knowledge) all mentions.
 - `parse` defaults to ["users", "roles", "everyone"] unless either the `roles` or `users` key exists (or both). `replied_user` defaults to `true` and must be explicitly set to `false`.
+
+`X-Audit-Log-Reason`:
+- Unlike Discord it is not URL encoded.
 
 GET `applications/@me`:
 - The `owner` field is missing.
 - The `oauth2/applications/@me` route is not present.
 - The bio is a separate field in the `bot` object rather than the top level `description`. I haven't investigated how the top level `description` field is set but it remains null after setting a bio.
 
-GET `users/{id}`:
-- If `{id}` does not correspond to a real user it responds with DeletedUser#0000 with the provided ID unlike Discord which responds with the error message `Unknown User`.
+GET `users/{user_id}`:
+- If `{user_id}` does not correspond to a real user it responds with DeletedUser#0000 with the provided ID unlike Discord which responds with the error message `Unknown User`.
 
-GET `guilds/{id}`
+GET `guilds/{guild_id}`
 - `roles`, `emojis` and `stickers` are missing
+
+POST `guilds/{guild_id}/bans/{user_id}`
+- The audit log reason (`X-Audit-Log-Reason` header) is separate from the actual reason stored in the entry (`reason` property).
 
 ## Gateway
 

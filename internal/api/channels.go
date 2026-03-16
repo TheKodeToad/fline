@@ -36,11 +36,16 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 			return nil, fmt.Errorf("failed to marshal converted payload: %w", err)
 		}
 
+		fluxerHeaders, err := headersToFluxer(r.Header)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert header to fluxer: %w", err)
+		}
+
 		fluxerResp, err := client.Do(
 			(&http.Request{
 				Method: "POST",
 				Body:   io.NopCloser(bytes.NewReader(fluxerPayload)),
-				Header: headersToFluxer(r.Header),
+				Header: fluxerHeaders,
 				URL:    formatFluxerURL(conf, "/channels/%s/messages", r.PathValue("id")),
 			}).WithContext(r.Context()),
 		)
@@ -67,10 +72,15 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 	}))
 
 	router.Post("/{id}/typing", apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
+		fluxerHeaders, err := headersToFluxer(r.Header)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert header to fluxer: %w", err)
+		}
+
 		fluxerResp, err := client.Do(
 			(&http.Request{
 				Method: "POST",
-				Header: headersToFluxer(r.Header),
+				Header: fluxerHeaders,
 				URL:    formatFluxerURL(conf, "/channels/%s/typing", r.PathValue("id")),
 			}).WithContext(r.Context()),
 		)
