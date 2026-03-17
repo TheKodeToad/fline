@@ -60,6 +60,15 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 		DecodeResponse: api.ExpectNoContentResponse,
 	})
 
+	router.Method("GET", "/{guild_id}/members/{user_id}", api.ProxyHandler[any, fluxer.GuildMember]{
+		Conf: conf,
+		Client: client,
+		Path: "/guilds/{guild_id}/members/{user_id}",
+		MapResponse: func(member fluxer.GuildMember) (any, error) {
+			return convert.GuildMemberToDiscord(member), nil
+		},
+	})
+
 	memberRole := api.ProxyHandler[any, api.NoContentResponse]{
 		Conf:           conf,
 		Client:         client,
