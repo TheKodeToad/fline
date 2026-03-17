@@ -38,6 +38,7 @@ func UserPartialToDiscord(user fluxer.UserPartial) discord.User {
 		Bot:           user.Bot,
 		System:        user.System,
 		Flags:         misc.New(UserFlagsToDiscord(user.Flags)),
+		PublicFlags:   misc.New(UserFlagsToDiscord(user.Flags)),
 	}
 }
 
