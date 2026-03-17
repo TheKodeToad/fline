@@ -1,93 +1,186 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 
+	fline "github.com/TheKodeToad/fline/internal"
 	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/TheKodeToad/fline/internal/convert"
 	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/TheKodeToad/fline/internal/fluxer"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
-func Routes(conf *config.Config) chi.Router {
-	var client http.Client
+// NoContentResponse simply represents a 204 response with no body.
+// It can be returned as the former value of a [HandlerFunc].
+type NoContentResponse struct{}
 
-	router := chi.NewRouter()
-
-	router.Use(middleware.Recoverer)
-
-	router.Route("/v{version}", func(router chi.Router) {
-		router.Mount("/channels", channelsRouter(conf, client))
-		router.Mount("/gateway", gatewayRouter(conf, client))
-		router.Mount("/guilds", guildsRouter(conf, client))
-		router.Mount("/oauth2", oauthRouter(conf, client))
-		router.Mount("/users", usersRouter(conf, client))
-	})
-
-	router.NotFound(apiHandler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error) {
-		logger.Debug("api route not found")
-		return nil, apiError{status: http.StatusNotFound}
-	}))
-
-	return router
+// Error simply contains a Discord API error with a Status.
+// It can be returned as the latter value of a [HandlerFunc] to yield an error response.
+type Error struct {
+	discord.APIError
+	Status int `json:"-"`
 }
 
-func formatFluxerURL(conf *config.Config, format string, a ...any) *url.URL {
-	return conf.FluxerAPIURL.JoinPath(
-		"v"+conf.FluxerAPIVersion,
-		fmt.Sprintf(format, a...),
+func (e Error) Error() string {
+	return fmt.Sprintf(
+		"API Error: '%s' (code: %d; status: %d)",
+		e.Message,
+		e.Code,
+		e.Status,
 	)
 }
 
-// performFluxerRequest performs a HTTP request to Fluxer applying headers from the passed [http.Request] and to the passed [http.ResponseWriter].
-func performFluxerRequest(
-	serverW http.ResponseWriter,
-	serverR *http.Request,
-	client http.Client,
-	req *http.Request,
-) (*http.Response, error) {
-	// it might be a bit confusing to have so many things done by one function
-	// TODO: maybe something more declarative (where you just specify transformation functions) would be better
-	req = req.WithContext(serverR.Context())
+type Handler func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error)
 
-	if req.Header == nil {
-		req.Header = http.Header{}
+func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logger := slog.Default().With(slog.Any("url", r.URL.String()))
+
+	formatStatus := func(status int) string {
+		return fmt.Sprintf("%d: %s", status, http.StatusText(status))
 	}
-	requestHeadersToFluxer(req.Header, serverR.Header)
 
-	resp, err := client.Do(req)
+	status := http.StatusOK
+	respObject, err := h(logger, w, r)
+	if err != nil {
+		var apiErr Error
+		if errors.As(err, &apiErr) {
+			if apiErr.Message == "" {
+				apiErr.Message = formatStatus(apiErr.Status)
+			}
+
+			status = apiErr.Status
+			respObject = apiErr
+		} else {
+			logger.Warn("unexpected error in handler", slog.Any("err", err))
+
+			status = http.StatusInternalServerError
+			respObject = Error{
+				APIError: discord.APIError{
+					Code:    discord.APIErrorGeneral,
+					Message: formatStatus(status),
+				},
+				Status: status,
+			}
+		}
+	} else if _, ok := respObject.(NoContentResponse); ok {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	} else if _, ok := respObject.(Error); ok {
+		panic("handler returned apiError as response. it should be returned as the latter value (error).")
+	}
+
+	resp, err := json.Marshal(respObject)
+	if err != nil {
+		logger.Warn("failed to marshal response object", slog.Any("err", err))
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, err = w.Write(resp)
+	if err != nil {
+		logger.Warn("error writing response", slog.Any("err", err))
+		return
+	}
+}
+
+// MapUnmarshalError maps the error to an appropriate error response if the passed error indicates malformed JSON.
+func MapUnmarshalError(err error) error {
+	var syntaxErr *json.SyntaxError
+	if errors.As(err, &syntaxErr) {
+		return Error{
+			APIError: discord.APIError{
+				Code:    discord.APIErrorRequestBodyHasInvalidJSON,
+				Message: "The request body contains invalid JSON.",
+			},
+			Status: http.StatusBadRequest,
+		}
+	}
+
+	var fieldErr *json.UnmarshalTypeError
+	if errors.As(err, &fieldErr) {
+		return Error{
+			APIError: discord.APIError{
+				Code:    discord.APIErrorInvalidFormBody,
+				Message: "Invalid Form Body",
+			},
+			Status: http.StatusBadRequest,
+		}
+	}
+
+	// FIXME: handle io.EOF, as well as unexpected EOF (which is a different error of type *errors.errorString :/)
+	return err
+}
+
+// FormatPathValues formats a string replacing {key} placeholders with r.PathValue("key").
+func FormatPathValues(r *http.Request, format string) (string, error) {
+	var result strings.Builder
+	result.Grow(len(format))
+
+	var withinBrace bool
+	var chunkStart int
+
+	makeErr := func(msg string, pos int) error {
+		return fmt.Errorf("%s at pos %d", msg, pos+1)
+	}
+
+	for i, ch := range []byte(format) {
+		switch ch {
+		case '{':
+			// NOTE: appending whole chunks at once seems to be faster than appending bytes one by one
+			result.WriteString(format[chunkStart:i])
+
+			if withinBrace {
+				return "", makeErr("excessive opening braces", i)
+			}
+
+			withinBrace = true
+			// FIXME: could this overflow?
+			// I mean probably not but I feel uncomfortable just looking at it...
+			chunkStart = i + 1
+		case '}':
+			if !withinBrace {
+				return "", makeErr("excessive closing braces", i)
+			}
+
+			key := format[chunkStart:i]
+			if key == "" {
+				return "", makeErr("no key specified in placeholder", chunkStart-1)
+			}
+
+			result.WriteString(r.PathValue(key))
+
+			withinBrace = false
+			chunkStart = i + 1
+		}
+	}
+
+	if withinBrace {
+		return "", makeErr("expected close brace", len(format))
+	}
+	result.WriteString(format[chunkStart:])
+
+	return result.String(), nil
+}
+
+func FormatFluxerURL(conf *config.Config, r *http.Request, format string) (*url.URL, error) {
+	formatted, err := FormatPathValues(r, format)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode >= 400 && resp.StatusCode < 600 {
-		// it's an error response
-		if resp.Header.Get("Content-Type") != "application/json" {
-			return nil, apiError{status: resp.StatusCode}
-		}
-
-		var errObject fluxer.APIError
-		err := json.NewDecoder(resp.Body).Decode(&errObject)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode error response: %w", err)
-		}
-
-		return nil, apiError{
-			APIError: convert.APIErrorToDiscord(errObject),
-			status:   resp.StatusCode,
-		}
-	}
-
-	responseHeadersToDiscord(serverW.Header(), resp.Header)
-	return resp, err
+	return conf.FluxerAPIURL.JoinPath(
+		"v"+fline.FluxerAPIVersion,
+		formatted,
+	), nil
 }
 
 func removeIllegalHeaderValueChars(val string) string {
@@ -148,102 +241,186 @@ func responseHeadersToDiscord(out http.Header, headers http.Header) {
 	}
 }
 
-// mapUnmarshalError creates an approapriate response if the passed error indicates malformed JSON.
-func mapUnmarshalError(err error) error {
-	var syntaxErr *json.SyntaxError
-	if errors.As(err, &syntaxErr) {
-		return apiError{
-			APIError: discord.APIError{
-				Code:    discord.APIErrorRequestBodyHasInvalidJSON,
-				Message: "The request body contains invalid JSON.",
-			},
-			status: http.StatusBadRequest,
-		}
-	}
+func decodeRequestJSON[T any](req *http.Request, optional bool) (T, error) {
+	var result T
 
-	var fieldErr *json.UnmarshalTypeError
-	if errors.As(err, &fieldErr) {
-		return apiError{
+	contentType := req.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		if optional {
+			return result, nil
+		}
+
+		return result, Error{
 			APIError: discord.APIError{
 				Code:    discord.APIErrorInvalidFormBody,
 				Message: "Invalid Form Body",
 			},
-			status: http.StatusBadRequest,
+			Status: http.StatusBadRequest,
 		}
 	}
 
-	// FIXME: handle io.EOF, as well as unexpected EOF (which is a different error of type *errors.errorString :/)
-	return err
+	err := json.NewDecoder(req.Body).Decode(&result)
+	if err != nil {
+		return result, MapUnmarshalError(err)
+	}
+
+	return result, nil
 }
 
-type apiError struct {
-	discord.APIError
-	status int
+// DecodeOptionalRequestJSON decodes the JSON content of req if the content type is properly set.
+// Otherwise, an appropriate invalid form body error is return.
+func DecodeRequestJSON[T any](req *http.Request) (T, error) {
+	return decodeRequestJSON[T](req, false)
 }
 
-func (e apiError) Error() string {
-	return fmt.Sprintf(
-		"API Error: '%s' (code: %d; status: %d)",
-		e.Message,
-		e.Code,
-		e.status,
-	)
+// DecodeOptionalRequestJSON decodes the JSON content of req if the content type is properly set.
+// Otherwise, the zero value of T is returned.
+func DecodeOptionalRequestJSON[T any](req *http.Request) (T, error) {
+	return decodeRequestJSON[T](req, true)
 }
 
-type apiNoContentResponse struct{}
+func DecodeResponseJSON[T any](resp *http.Response) (T, error) {
+	var result T
 
-type apiHandlerFunc func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error)
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		return result, fmt.Errorf("expected content type to be JSON but got '%s'", contentType)
+	}
 
-func apiHandler(handler apiHandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		logger := slog.Default().With(slog.Any("url", r.URL.String()))
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return result, err
+	}
 
-		formatStatus := func(status int) string {
-			return fmt.Sprintf("%d: %s", status, http.StatusText(status))
+	return result, nil
+}
+
+func ExpectNoContentResponse(resp *http.Response) (NoContentResponse, error) {
+	if resp.StatusCode != http.StatusNoContent {
+		return NoContentResponse{}, fmt.Errorf(
+			"expected status %d %s but got %s",
+			http.StatusNoContent,
+			http.StatusText(http.StatusNoContent),
+			resp.Status,
+		)
+	}
+
+	return NoContentResponse{}, nil
+}
+
+// ProxyHandler forwards the request to a Fluxer URL and allows transformation of the response.
+type ProxyHandler[ReqBody any, RespBody any] struct {
+	Conf   *config.Config
+	Client http.Client
+	// Path contains a format for the Fluxer route.
+	// {name} placeholders can be used to expand path parameters from the original request.
+	Path string
+
+	// DecodeRequest is called with the request if MapRequest is not nil.
+	// The returned value is passed to MapRequest if decoding is successful.
+	// By default [DecodeRequestJSON] is used.
+	DecodeRequest func(req *http.Request) (ReqBody, error)
+	// EncodeRequest is called with the mapped request if MapRequest is not nil.
+	// The returned value is passed to the Fluxer request if encoding is successful.
+	// By default [json.MarshalJSON] is used.
+	EncodeRequest func(body any) ([]byte, error)
+	MapRequest    func(body ReqBody) (any, error)
+
+	// DecodeResponse is called with the response if the status does not represent an error.
+	// The returned value is passed to MapResponse if decoding is successful.
+	// By default [DecodeResponseJSON] is used.
+	DecodeResponse func(resp *http.Response) (RespBody, error)
+	MapResponse    func(body RespBody) (any, error)
+}
+
+func (opts ProxyHandler[ReqBody, RespBody]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h := Handler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
+		targetURL, err := FormatFluxerURL(opts.Conf, r, opts.Path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to format fluxer URL: %w", err)
 		}
 
-		status := http.StatusOK
-		respObject, err := handler(logger, w, r)
-		if err != nil {
-			var apiErr apiError
-			if errors.As(err, &apiErr) {
-				if apiErr.Message == "" {
-					apiErr.Message = formatStatus(apiErr.status)
-				}
+		fluxerReq := &http.Request{
+			Method: r.Method,
+			URL:    targetURL,
+			Header: http.Header{},
+		}
+		fluxerReq = fluxerReq.WithContext(r.Context())
+		requestHeadersToFluxer(fluxerReq.Header, r.Header)
 
-				status = apiErr.status
-				respObject = apiErr
+		if opts.MapRequest != nil {
+			var body ReqBody
+			if opts.DecodeRequest != nil {
+				body, err = opts.DecodeRequest(r)
 			} else {
-				logger.Warn("unexpected error in handler", slog.Any("err", err))
-
-				status = http.StatusInternalServerError
-				respObject = apiError{
-					APIError: discord.APIError{
-						Code:    discord.APIErrorGeneral,
-						Message: formatStatus(status),
-					},
-					status: status,
-				}
+				body, err = DecodeRequestJSON[ReqBody](r)
 			}
-		} else if _, ok := respObject.(apiNoContentResponse); ok {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		} else if _, ok := respObject.(apiError); ok {
-			panic("handler returned apiError as response. it should be returned as the latter value (error).")
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode request body: %w", err)
+			}
+
+			mappedBody, err := opts.MapRequest(body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to map request body: %w", err)
+			}
+
+			var mappedBodyBytes []byte
+			if opts.EncodeRequest != nil {
+				mappedBodyBytes, err = opts.EncodeRequest(mappedBody)
+			} else {
+				mappedBodyBytes, err = json.Marshal(mappedBody)
+			}
+			if err != nil {
+				return nil, fmt.Errorf("failed to encode mapped request body: %w", err)
+			}
+
+			fluxerReq.Body = io.NopCloser(bytes.NewReader(mappedBodyBytes))
 		}
 
-		resp, err := json.Marshal(respObject)
+		fluxerResp, err := opts.Client.Do(fluxerReq)
 		if err != nil {
-			logger.Warn("failed to marshal response object", slog.Any("err", err))
-			return
+			return nil, fmt.Errorf("failed to perform fluxer request: %w", err)
+		}
+		responseHeadersToDiscord(w.Header(), fluxerResp.Header)
+
+		if fluxerResp.StatusCode >= 400 && fluxerResp.StatusCode < 600 {
+			// it's an error response
+			if fluxerResp.Header.Get("Content-Type") != "application/json" {
+				return nil, Error{Status: fluxerResp.StatusCode}
+			}
+
+			var errObject fluxer.APIError
+			err := json.NewDecoder(fluxerResp.Body).Decode(&errObject)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode error response: %w", err)
+			}
+
+			return nil, Error{
+				APIError: convert.APIErrorToDiscord(errObject),
+				Status:   fluxerResp.StatusCode,
+			}
 		}
 
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(status)
-		_, err = w.Write(resp)
-		if err != nil {
-			logger.Warn("error writing response", slog.Any("err", err))
-			return
+		var decodedResp RespBody
+		if opts.DecodeResponse != nil {
+			decodedResp, err = opts.DecodeResponse(fluxerResp)
+		} else {
+			decodedResp, err = DecodeResponseJSON[RespBody](fluxerResp)
 		}
-	}
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode non-error response: %w", err)
+		}
+
+		if opts.MapResponse != nil {
+			mappedResp, err := opts.MapResponse(decodedResp)
+			if err != nil {
+				return nil, fmt.Errorf("failed to map response: %w", err)
+			}
+
+			return mappedResp, nil
+		} else {
+			return decodedResp, nil
+		}
+	})
+	h.ServeHTTP(w, r)
 }

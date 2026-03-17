@@ -120,7 +120,7 @@ func startSession(conf *config.Config, w http.ResponseWriter, r *http.Request) (
 
 	fluxerURL := misc.New(*conf.FluxerGatewayURL)
 	fluxerQuery := fluxerURL.Query()
-	fluxerQuery.Add("v", conf.FluxerAPIVersion)
+	fluxerQuery.Add("v", fline.FluxerAPIVersion)
 	fluxerURL.RawQuery = fluxerQuery.Encode()
 
 	fluxerConn, _, err := websocket.DefaultDialer.Dial(fluxerURL.String(), nil)

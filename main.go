@@ -11,7 +11,7 @@ import (
 	"time"
 
 	fline "github.com/TheKodeToad/fline/internal"
-	"github.com/TheKodeToad/fline/internal/api"
+	apiroutes "github.com/TheKodeToad/fline/internal/api/routes"
 	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/TheKodeToad/fline/internal/gateway"
 	"github.com/TheKodeToad/fline/internal/legiblelog"
@@ -34,7 +34,7 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(middleware.StripSlashes)
 
-	router.Mount("/api", api.Routes(&conf))
+	router.Mount("/api", apiroutes.Router(&conf))
 
 	var gateway gateway.Gateway
 	router.Get(fline.GatewayPath, func(w http.ResponseWriter, r *http.Request) {

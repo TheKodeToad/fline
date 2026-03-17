@@ -1,0 +1,49 @@
+package apiroutes
+
+import (
+	"net/http"
+
+	"github.com/TheKodeToad/fline/internal/api"
+	"github.com/TheKodeToad/fline/internal/config"
+	"github.com/TheKodeToad/fline/internal/convert"
+	"github.com/TheKodeToad/fline/internal/discord"
+	"github.com/TheKodeToad/fline/internal/fluxer"
+	"github.com/go-chi/chi/v5"
+)
+
+func usersRouter(conf *config.Config, client http.Client) chi.Router {
+	router := chi.NewRouter()
+
+	router.Method("GET", "/@me", api.ProxyHandler[any, fluxer.UserPrivate]{
+		Conf: conf,
+		Client: client,
+		Path: "/users/@me",
+		MapResponse: func(user fluxer.UserPrivate) (any, error) {
+			return convert.UserPrivateToDiscord(user), nil
+		},
+	})
+
+	router.Method("GET", "/{user_id}", api.ProxyHandler[any, fluxer.UserPartial]{
+		Conf: conf,
+		Client: client,
+		Path: "/users/{user_id}",
+		MapResponse: func(user fluxer.UserPartial) (any, error) {
+			// check for A deleted (non-existent) user instead of THE deleted user
+			if user.Username == fluxer.DeletedUserUsername &&
+				user.Discriminator == fluxer.DeletedUserDiscrim &&
+				user.ID != fluxer.DeletedUserID {
+				return nil, api.Error{
+					APIError: discord.APIError{
+						Code:    discord.APIErrorUnknownUser,
+						Message: "Unknown User",
+					},
+					Status: http.StatusNotFound,
+				}
+			}
+
+			return convert.UserPartialToDiscord(user), nil
+		},
+	})
+
+	return router
+}

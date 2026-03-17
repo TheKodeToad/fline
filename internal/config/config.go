@@ -12,7 +12,6 @@ import (
 
 type Config struct {
 	FluxerAPIURL     *url.URL
-	FluxerAPIVersion string
 	FluxerGatewayURL *url.URL
 	ListenAddr       string
 	LogLevel         slog.Level
@@ -29,7 +28,6 @@ func mustParseURL(rawURL string) *url.URL {
 
 var defaults = Config{
 	FluxerAPIURL:     mustParseURL("https://api.fluxer.app/"),
-	FluxerAPIVersion: "1",
 	FluxerGatewayURL: mustParseURL("wss://gateway.fluxer.app"),
 	ListenAddr:       ":8080",
 	LogLevel:         slog.LevelInfo,
@@ -67,10 +65,6 @@ func Load() (Config, error) {
 		}
 
 		result.FluxerGatewayURL = parsed
-	}
-
-	if v := lookup("FLUXER_API_VERSION"); v != "" {
-		result.FluxerAPIVersion = v
 	}
 
 	if v := lookup("FLINE_LISTEN_ADDR"); v != "" {
