@@ -24,7 +24,7 @@ type Attachment struct {
 }
 
 type EmbedFooter struct {
-	Text         *string  `json:"text,omitempty"`
+	Text         *string `json:"text,omitempty"`
 	IconURL      *string `json:"icon_url,omitempty"`
 	ProxyIconURL *string `json:"proxy_icon_url,omitempty"`
 }
@@ -51,7 +51,7 @@ type EmbedAuthor struct {
 type EmbedField struct {
 	Name   string `json:"name"`
 	Value  string `json:"value"`
-	Inline *bool  `json:"inline"`
+	Inline *bool  `json:"inline,omitempty"`
 }
 
 type Embed struct {
