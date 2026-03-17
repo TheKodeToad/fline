@@ -14,10 +14,10 @@ import (
 func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 	router := chi.NewRouter()
 
-	router.Method("POST", "/", api.ProxyHandler[discord.MessageCreate, fluxer.Message] {
-		Conf: conf,
+	router.Method("POST", "/", api.ProxyHandler[discord.MessageCreate, fluxer.Message]{
+		Conf:   conf,
 		Client: client,
-		Path: "/channels/{channel_id}/messages",
+		Path:   "/channels/{channel_id}/messages",
 		MapRequest: func(create discord.MessageCreate) (any, error) {
 			return convert.MessageCreateToFluxer(create), nil
 		},

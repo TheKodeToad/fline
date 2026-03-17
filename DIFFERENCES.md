@@ -28,14 +28,17 @@ GET `applications/@me`:
 - The `oauth2/applications/@me` route is not present.
 - The bio is a separate field in the `bot` object rather than the top level `description`. I haven't investigated how the top level `description` field is set but it remains null after setting a bio.
 
-GET `users/{user_id}`:
-- If `{user_id}` does not correspond to a real user it responds with DeletedUser#0000 with the provided ID unlike Discord which responds with the error message `Unknown User`.
+POST `channels/{channel_id}/messages`
+- On Discord, omitting the required property on `footer`, `image`, `thumbnail` or `author` does not yield an error response - the property with the missing field is ignored instead. Fluxer does not replicate this.
 
 GET `guilds/{guild_id}`
 - `roles`, `emojis` and `stickers` are missing
 
 POST `guilds/{guild_id}/bans/{user_id}`
 - The audit log reason (`X-Audit-Log-Reason` header) is separate from the actual reason stored in the entry (`reason` property).
+
+GET `users/{user_id}`:
+- If `{user_id}` does not correspond to a real user it responds with DeletedUser#0000 with the provided ID unlike Discord which responds with the error message `Unknown User`.
 
 ## Gateway
 

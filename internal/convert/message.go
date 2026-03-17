@@ -7,6 +7,24 @@ import (
 	"github.com/disgoorg/snowflake/v2"
 )
 
+func EmbedToFluxer(embed discord.Embed) discord.Embed {
+	// NOTE: even though Discord documents these as not being optional they are
+	if embed.Footer != nil && embed.Footer.Text == nil {
+		embed.Author = nil
+	}
+	if embed.Image != nil && embed.Image.URL == nil {
+		embed.Image = nil
+	}
+	if embed.Thumbnail != nil && embed.Thumbnail.URL == nil {
+		embed.Thumbnail = nil
+	}
+	if embed.Author != nil && embed.Author.Name == nil {
+		embed.Author = nil
+	}
+
+	return embed
+}
+
 func ReactionToDiscord(reaction fluxer.Reaction) discord.Reaction {
 	return discord.Reaction{
 		Count: reaction.Count,
@@ -100,11 +118,16 @@ func MessageCreateToFluxer(create discord.MessageCreate) fluxer.MessageCreate {
 		}
 	}
 
+	embeds := make([]discord.Embed, 0, len(create.Embeds))
+	for _, embed := range create.Embeds {
+		embeds = append(embeds, EmbedToFluxer(embed))
+	}
+
 	return fluxer.MessageCreate{
 		Content:          create.Content,
 		Nonce:            nonce,
 		TTS:              create.TTS,
-		Embeds:           create.Embeds,
+		Embeds:           embeds,
 		AllowedMentions:  allowedMentions,
 		MessageReference: create.MessageReference,
 		Flags:            create.Flags,
