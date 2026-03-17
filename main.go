@@ -15,11 +15,14 @@ import (
 	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/TheKodeToad/fline/internal/gateway"
 	"github.com/TheKodeToad/fline/internal/legiblelog"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
+	snowflake.AllowUnquoted = true
+
 	conf, err := config.Load()
 	if err != nil {
 		slog.Error("failed to load config", slog.Any("err", err))
