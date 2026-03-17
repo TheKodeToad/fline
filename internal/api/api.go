@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,7 +42,7 @@ func (e Error) Error() string {
 type Handler func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error)
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	logger := slog.Default().With(slog.Any("url", r.URL.String()))
+	logger := slog.Default().With(slog.Any("route", r.URL.String()))
 
 	formatStatus := func(status int) string {
 		return fmt.Sprintf("%d: %s", status, http.StatusText(status))
@@ -335,14 +336,14 @@ type ProxyHandler[ReqBody any, RespBody any] struct {
 
 func (opts ProxyHandler[ReqBody, RespBody]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h := Handler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error) {
-		targetURL, err := FormatFluxerURL(opts.Conf, r, opts.Path)
+		fluxerURL, err := FormatFluxerURL(opts.Conf, r, opts.Path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to format fluxer URL: %w", err)
 		}
 
 		fluxerReq := &http.Request{
 			Method: r.Method,
-			URL:    targetURL,
+			URL:    fluxerURL,
 			Header: http.Header{},
 		}
 		fluxerReq = fluxerReq.WithContext(r.Context())
@@ -368,7 +369,18 @@ func (opts ProxyHandler[ReqBody, RespBody]) ServeHTTP(w http.ResponseWriter, r *
 			if opts.EncodeRequest != nil {
 				mappedBodyBytes, err = opts.EncodeRequest(mappedBody)
 			} else {
-				mappedBodyBytes, err = json.Marshal(mappedBody)
+				if logger.Enabled(context.Background(), slog.LevelDebug) {
+					// FIXME: maybe changing behaviour with debug log level is a bad idea...
+					mappedBodyBytes, err = json.MarshalIndent(mappedBody, "", "  ")
+
+					logger.Debug(
+						"sending JSON body", 
+						slog.String("fluxerURL", fluxerURL.String()), 
+						slog.String("body", string(mappedBodyBytes)),
+					)
+				} else {
+					mappedBodyBytes, err = json.Marshal(mappedBody)
+				}
 			}
 			if err != nil {
 				return nil, fmt.Errorf("failed to encode mapped request body: %w", err)
