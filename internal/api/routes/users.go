@@ -17,25 +17,26 @@ func usersRouter(conf *config.Config, client http.Client) chi.Router {
 	router := chi.NewRouter()
 
 	router.Method("GET", "/@me", api.ProxyHandler[any, fluxer.UserPrivate]{
-		Conf: conf,
+		Conf:   conf,
 		Client: client,
-		Path: "/users/@me",
+		Path:   "/users/@me",
 		MapResponse: func(user fluxer.UserPrivate) (any, error) {
 			return convert.UserPrivateToDiscord(user), nil
 		},
 	})
 
 	router.Method("POST", "/@me/channels", api.ProxyHandler[[]byte, fluxer.Channel]{
-		Conf: conf,
+		Conf:   conf,
 		Client: client,
-		Path: "/users/@me/channels",
+		Path:   "/users/@me/channels",
 		DecodeRequest: func(req *http.Request) ([]byte, error) {
 			return io.ReadAll(req.Body)
 		},
 		MapRequest: func(body []byte) (any, error) {
 			return body, nil
 		},
-		EncodeRequest: func(body any) ([]byte, error) {
+		EncodeRequest: func(body any, header *http.Header) ([]byte, error) {
+			header.Set("Content-Type", "application/json")
 			return body.([]byte), nil
 		},
 		MapResponse: func(inChannel fluxer.Channel) (any, error) {
@@ -49,9 +50,9 @@ func usersRouter(conf *config.Config, client http.Client) chi.Router {
 	})
 
 	router.Method("GET", "/{user_id}", api.ProxyHandler[any, fluxer.UserPartial]{
-		Conf: conf,
+		Conf:   conf,
 		Client: client,
-		Path: "/users/{user_id}",
+		Path:   "/users/{user_id}",
 		MapResponse: func(user fluxer.UserPartial) (any, error) {
 			// check for A deleted (non-existent) user instead of THE deleted user
 			if user.Username == fluxer.DeletedUserUsername &&

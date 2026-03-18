@@ -130,6 +130,9 @@ func MessageCreateToFluxer(create discord.MessageCreate) fluxer.MessageCreate {
 		Embeds:           embeds,
 		AllowedMentions:  allowedMentions,
 		MessageReference: create.MessageReference,
+		StickerIDs:       create.StickerIDs,
+		Files:            create.Files,
+		Attachments:      create.Attachments,
 		Flags:            create.Flags,
 		EnforceNonce:     create.EnforceNonce,
 	}

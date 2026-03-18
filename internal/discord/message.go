@@ -11,16 +11,15 @@ type ChannelMention struct {
 
 type Attachment struct {
 	ID          snowflake.ID `json:"id"`
-	Filename    string       `json:"filename"`
+	Filename    *string      `json:"filename,omitempty"`
 	Title       *string      `json:"title,omitempty"`
 	Description *string      `json:"description,omitempty"`
 	ContentType *string      `json:"content_type,omitempty"`
-	Size        int          `json:"size"`
-	URL         string       `json:"url"`
-	ProxyURL    string       `json:"proxy_url"`
+	Size        *int         `json:"size,omitempty"`
+	URL         *string      `json:"url,omitempty"`
+	ProxyURL    *string      `json:"proxy_url,omitempty"`
 	Width       *int         `json:"width,omitempty"`
 	Height      *int         `json:"height,omitempty"`
-	Ephemeral   *bool        `json:"ephemeral,omitempty"`
 }
 
 type EmbedFooter struct {
@@ -131,13 +130,22 @@ type AllowedMentions struct {
 	RepliedUser *bool          `json:"replied_user,omitempty"`
 }
 
+type MessageFile struct {
+	FieldName string
+	Filename  string
+	Content   []byte
+}
+
 type MessageCreate struct {
-	Content          *string           `json:"content"`
-	Nonce            *Nonce            `json:"nonce"`
-	TTS              *bool             `json:"tts"`
-	Embeds           []Embed           `json:"embeds"`
-	AllowedMentions  *AllowedMentions  `json:"allowed_mentions"`
-	MessageReference *MessageReference `json:"message_reference"`
-	Flags            int               `json:"flags"`
-	EnforceNonce     *bool             `json:"enforce_nonce"`
+	Content          *string           `json:"content,omitempty"`
+	Nonce            *Nonce            `json:"nonce,omitempty"`
+	TTS              *bool             `json:"tts,omitempty"`
+	Embeds           []Embed           `json:"embeds,omitzero"`
+	AllowedMentions  *AllowedMentions  `json:"allowed_mentions,omitempty"`
+	MessageReference *MessageReference `json:"message_reference,omitempty"`
+	StickerIDs       []snowflake.ID    `json:"sticker_ids,omitzero"`
+	Files            []MessageFile     `json:"-"`
+	Attachments      []Attachment      `json:"attachments,omitzero"`
+	Flags            int               `json:"flags,omitempty"`
+	EnforceNonce     *bool             `json:"enforce_nonce,omitempty"`
 }

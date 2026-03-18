@@ -42,6 +42,9 @@ type MessageCreate struct {
 	Embeds           []discord.Embed           `json:"embeds,omitempty"`
 	AllowedMentions  *discord.AllowedMentions  `json:"allowed_mentions,omitempty"`
 	MessageReference *discord.MessageReference `json:"message_reference,omitempty"`
+	StickerIDs       []snowflake.ID            `json:"sticker_ids,omitzero"`
+	Files            []discord.MessageFile     `json:"-"`
+	Attachments      []discord.Attachment      `json:"attachments,omitzero"`
 	Flags            int                       `json:"flags"`
 	EnforceNonce     *bool                     `json:"enforce_nonce,omitempty"`
 }

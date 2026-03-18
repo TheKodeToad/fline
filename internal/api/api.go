@@ -39,6 +39,16 @@ func (e Error) Error() string {
 	)
 }
 
+var (
+	ErrInvalidFormBody = Error{
+		APIError: discord.APIError{
+			Code:    discord.APIErrorInvalidFormBody,
+			Message: "Invalid Form Body",
+		},
+		Status: http.StatusBadRequest,
+	}
+)
+
 type Handler func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (any, error)
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -108,13 +118,7 @@ func MapUnmarshalError(err error) error {
 
 	var fieldErr *json.UnmarshalTypeError
 	if errors.As(err, &fieldErr) {
-		return Error{
-			APIError: discord.APIError{
-				Code:    discord.APIErrorInvalidFormBody,
-				Message: "Invalid Form Body",
-			},
-			Status: http.StatusBadRequest,
-		}
+		return ErrInvalidFormBody
 	}
 
 	// FIXME: handle io.EOF, as well as unexpected EOF (which is a different error of type *errors.errorString :/)
@@ -203,7 +207,6 @@ func removeIllegalHeaderValueChars(val string) string {
 
 func requestHeadersToFluxer(out http.Header, headers http.Header) {
 	passthrough := []string{
-		"Content-Type",
 		"Authorization",
 	}
 	for _, key := range passthrough {
@@ -251,13 +254,7 @@ func decodeRequestJSON[T any](req *http.Request, optional bool) (T, error) {
 			return result, nil
 		}
 
-		return result, Error{
-			APIError: discord.APIError{
-				Code:    discord.APIErrorInvalidFormBody,
-				Message: "Invalid Form Body",
-			},
-			Status: http.StatusBadRequest,
-		}
+		return result, ErrInvalidFormBody
 	}
 
 	err := json.NewDecoder(req.Body).Decode(&result)
@@ -323,8 +320,9 @@ type ProxyHandler[ReqBody any, RespBody any] struct {
 	DecodeRequest func(req *http.Request) (ReqBody, error)
 	// EncodeRequest is called with the mapped request if MapRequest is not nil.
 	// The returned value is passed to the Fluxer request if encoding is successful.
-	// By default [json.MarshalJSON] is used.
-	EncodeRequest func(body any) ([]byte, error)
+	// The header parameter to can be used to add headers.
+	// By default [json.MarshalJSON] is used and the Content-Type is set to application/json.
+	EncodeRequest func(body any, header *http.Header) ([]byte, error)
 	MapRequest    func(body ReqBody) (any, error)
 
 	// DecodeResponse is called with the response if the status does not represent an error.
@@ -367,15 +365,15 @@ func (opts ProxyHandler[ReqBody, RespBody]) ServeHTTP(w http.ResponseWriter, r *
 
 			var mappedBodyBytes []byte
 			if opts.EncodeRequest != nil {
-				mappedBodyBytes, err = opts.EncodeRequest(mappedBody)
+				mappedBodyBytes, err = opts.EncodeRequest(mappedBody, &fluxerReq.Header)
 			} else {
 				if logger.Enabled(context.Background(), slog.LevelDebug) {
 					// FIXME: maybe changing behaviour with debug log level is a bad idea...
 					mappedBodyBytes, err = json.MarshalIndent(mappedBody, "", "  ")
 
 					logger.Debug(
-						"sending JSON body", 
-						slog.String("fluxerURL", fluxerURL.String()), 
+						"sending JSON body",
+						slog.String("fluxerURL", fluxerURL.String()),
 						slog.String("body", string(mappedBodyBytes)),
 					)
 				} else {

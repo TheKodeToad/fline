@@ -30,6 +30,7 @@ GET `applications/@me`:
 
 POST `channels/{channel_id}/messages`
 - On Discord, omitting the required property on `footer`, `image`, `thumbnail` or `author` does not yield an error response - the property with the missing field is ignored instead. Fluxer does not replicate this.
+- With a multipart body, only `payload_json` and `files[n]` is supported - and the former is required. While many (most?) implementations only use these, Discord also allows the rest of the top-level non-object properties to be set. You can even have multiple `sticker_ids` by specifying it multiple times. Discord also doesn't require attachment metadata, while Fluxer does, requiring you to specify the filenames again. Fluxer also infers the content type based on the filename with no way to specify it explicitly.
 
 GET `guilds/{guild_id}`
 - `roles`, `emojis` and `stickers` are missing
