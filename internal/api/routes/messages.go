@@ -224,6 +224,30 @@ func encodeFluxerMessageCreateForm(output io.Writer, create fluxer.MessageCreate
 func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 	router := chi.NewRouter()
 
+	router.Method("GET", "/", api.ProxyHandler[string, []fluxer.Message]{
+		Conf: conf,
+		Client: client,
+		Path: "/channels/{channel_id}/messages",
+		DecodeRequest: func(req *http.Request) (string, error) {
+			return req.URL.RawQuery, nil
+		},
+		MapRequest: func(query string) (any, error) {
+			return query, nil
+		},
+		EncodeRequest: func(query any, req *http.Request) error {
+			req.URL.RawQuery = query.(string)
+			return nil
+		},
+		MapResponse: func(inMessages []fluxer.Message) (any, error) {
+			outMessages := make([]discord.Message, 0, len(inMessages))
+			for _, message := range inMessages {
+				outMessages = append(outMessages, convert.MessageToDiscord(message))
+			}
+
+			return outMessages, nil
+		},
+	})
+
 	router.Method("POST", "/", api.ProxyHandler[discord.MessageCreate, fluxer.Message]{
 		Conf:   conf,
 		Client: client,
