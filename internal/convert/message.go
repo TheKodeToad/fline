@@ -7,7 +7,20 @@ import (
 	"github.com/disgoorg/snowflake/v2"
 )
 
+func EmbedFieldToFluxer(field discord.EmbedField) discord.EmbedField {
+	if field.Value == "" {
+		// NOTE: Fluxer doesn't allow any empty string here unlike Discord
+		field.Value = "-"
+	}
+
+	return field
+}
+
 func EmbedToFluxer(embed discord.Embed) discord.Embed {
+	for i, field := range embed.Fields {
+		embed.Fields[i] = EmbedFieldToFluxer(field)
+	}
+
 	// NOTE: even though Discord documents these as not being optional they are
 	if embed.Footer != nil && embed.Footer.Text == nil {
 		embed.Footer = nil

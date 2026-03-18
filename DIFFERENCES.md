@@ -11,6 +11,9 @@ Roles:
 - There are no role tags.
 - There is no `colors` field - which makes sense without role gradients - but Discord has deprecated the color field and made this field required in the response.
 
+Messages:
+- Embed field values cannot be empty.
+
 Permissions:
 - The permission `UPDATE_RTC_REGION` (`1 << 53` - "Set Voice Region") is not present on Discord. If Discord adds another permission it could conflict.
 
