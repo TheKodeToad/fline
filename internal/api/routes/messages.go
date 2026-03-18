@@ -317,6 +317,16 @@ func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 		DecodeResponse: api.ExpectNoContentResponse,
 	})
 
+	router.Method("POST", "/bulk-delete", api.ProxyHandler[discord.MessageBulkDelete, api.NoContentResponse]{
+		Conf:           conf,
+		Client:         client,
+		Path:           "/channels/{channel_id}/messages/bulk-delete",
+		MapRequest: func(body discord.MessageBulkDelete) (any, error) {
+			return convert.MessageBulkDeleteToFluxer(body), nil
+		},
+		DecodeResponse: api.ExpectNoContentResponse,
+	})
+
 	router.Method("PUT", "/{message_id}/reactions/{emoji_id}/@me", api.ProxyHandler[any, api.NoContentResponse]{
 		Conf:           conf,
 		Client:         client,

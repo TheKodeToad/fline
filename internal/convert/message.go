@@ -137,3 +137,7 @@ func MessageCreateToFluxer(create discord.MessageCreate) fluxer.MessageCreate {
 		EnforceNonce:     create.EnforceNonce,
 	}
 }
+
+func MessageBulkDeleteToFluxer(delete discord.MessageBulkDelete) fluxer.MessageBulkDelete {
+	return fluxer.MessageBulkDelete{MessageIDs: delete.Messages}
+}

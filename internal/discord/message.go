@@ -149,3 +149,7 @@ type MessageCreate struct {
 	Flags            int               `json:"flags,omitempty"`
 	EnforceNonce     *bool             `json:"enforce_nonce,omitempty"`
 }
+
+type MessageBulkDelete struct {
+	Messages []snowflake.ID `json:"messages"`
+}

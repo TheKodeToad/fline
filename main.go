@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -47,7 +48,7 @@ func main() {
 	server := http.Server{
 		Addr: conf.ListenAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			slog.Debug("handling " + r.URL.Path)
+			slog.Debug(fmt.Sprintf("handling %s %s", r.Method, r.URL.Path))
 			router.ServeHTTP(w, r)
 		}),
 	}
