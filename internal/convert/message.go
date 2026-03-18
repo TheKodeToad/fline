@@ -10,7 +10,7 @@ import (
 func EmbedToFluxer(embed discord.Embed) discord.Embed {
 	// NOTE: even though Discord documents these as not being optional they are
 	if embed.Footer != nil && embed.Footer.Text == nil {
-		embed.Author = nil
+		embed.Footer = nil
 	}
 	if embed.Image != nil && embed.Image.URL == nil {
 		embed.Image = nil
