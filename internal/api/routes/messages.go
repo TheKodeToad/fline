@@ -258,21 +258,27 @@ func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 		MapRequest: func(create discord.MessageCreate) (any, error) {
 			return convert.MessageCreateToFluxer(create), nil
 		},
-		EncodeRequest: func(body any, header *http.Header) ([]byte, error) {
+		EncodeRequest: func(body any, req *http.Request) error {
 			create := body.(fluxer.MessageCreate)
 			if len(create.Files) != 0 {
 				var buf bytes.Buffer
 				contentType, err := encodeFluxerMessageCreateForm(&buf, create)
 				if err != nil {
-					return nil, fmt.Errorf("failed to encode message form: %w", err)
+					return fmt.Errorf("failed to encode message form: %w", err)
 				}
 
-				header.Set("Content-Type", contentType)
-				fmt.Println(buf.String())
-				return buf.Bytes(), nil
+				req.Header.Set("Content-Type", contentType)
+				req.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
+				return nil
 			} else {
-				header.Set("Content-Type", "application/json")
-				return json.Marshal(create)
+				data, err := json.Marshal(create)
+				if err != nil {
+					return err
+				}
+
+				req.Header.Set("Content-Type", "application/json")
+				req.Body = io.NopCloser(bytes.NewReader(data))
+				return nil
 			}
 		},
 		MapResponse: func(message fluxer.Message) (any, error) {

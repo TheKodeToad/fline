@@ -1,6 +1,7 @@
 package apiroutes
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,9 +36,10 @@ func usersRouter(conf *config.Config, client http.Client) chi.Router {
 		MapRequest: func(body []byte) (any, error) {
 			return body, nil
 		},
-		EncodeRequest: func(body any, header *http.Header) ([]byte, error) {
-			header.Set("Content-Type", "application/json")
-			return body.([]byte), nil
+		EncodeRequest: func(body any, req *http.Request) error {
+			req.Body = io.NopCloser(bytes.NewReader(body.([]byte)))
+			req.Header.Set("Content-Type", "application/json")
+			return nil
 		},
 		MapResponse: func(inChannel fluxer.Channel) (any, error) {
 			outChannel, ok := convert.ChannelToDiscord(inChannel)

@@ -319,10 +319,9 @@ type ProxyHandler[ReqBody any, RespBody any] struct {
 	// By default [DecodeRequestJSON] is used.
 	DecodeRequest func(req *http.Request) (ReqBody, error)
 	// EncodeRequest is called with the mapped request if MapRequest is not nil.
-	// The returned value is passed to the Fluxer request if encoding is successful.
-	// The header parameter to can be used to add headers.
+	// The req parameter can be used to apply the body.
 	// By default [json.MarshalJSON] is used and the Content-Type is set to application/json.
-	EncodeRequest func(body any, header *http.Header) ([]byte, error)
+	EncodeRequest func(body any, req *http.Request) error
 	MapRequest    func(body ReqBody) (any, error)
 
 	// DecodeResponse is called with the response if the status does not represent an error.
@@ -363,10 +362,11 @@ func (opts ProxyHandler[ReqBody, RespBody]) ServeHTTP(w http.ResponseWriter, r *
 				return nil, fmt.Errorf("failed to map request body: %w", err)
 			}
 
-			var mappedBodyBytes []byte
 			if opts.EncodeRequest != nil {
-				mappedBodyBytes, err = opts.EncodeRequest(mappedBody, &fluxerReq.Header)
+				err = opts.EncodeRequest(mappedBody, fluxerReq)
 			} else {
+				var mappedBodyBytes []byte
+
 				if logger.Enabled(context.Background(), slog.LevelDebug) {
 					// FIXME: maybe changing behaviour with debug log level is a bad idea...
 					mappedBodyBytes, err = json.MarshalIndent(mappedBody, "", "  ")
@@ -379,12 +379,12 @@ func (opts ProxyHandler[ReqBody, RespBody]) ServeHTTP(w http.ResponseWriter, r *
 				} else {
 					mappedBodyBytes, err = json.Marshal(mappedBody)
 				}
+
+				fluxerReq.Body = io.NopCloser(bytes.NewReader(mappedBodyBytes))
 			}
 			if err != nil {
 				return nil, fmt.Errorf("failed to encode mapped request body: %w", err)
 			}
-
-			fluxerReq.Body = io.NopCloser(bytes.NewReader(mappedBodyBytes))
 		}
 
 		fluxerResp, err := opts.Client.Do(fluxerReq)
