@@ -412,6 +412,9 @@ func (s *session) handleFluxerMsg(msg wsMessage) error {
 }
 
 func (s *session) run(shutdown <-chan struct{}) {
+	var sentClientClose bool
+	var sentFluxerClose bool
+
 	for {
 		select {
 		case msg := <-s.client.read:
@@ -427,9 +430,25 @@ func (s *session) run(shutdown <-chan struct{}) {
 		case err := <-s.client.readErr:
 			var closeErr *websocket.CloseError
 			if errors.As(err, &closeErr) {
+				if closeErr.Code == websocket.CloseAbnormalClosure {
+					slog.Debug("client connection closed without sending close message")
+					return
+				}
+
+				slog.Debug(
+					"forwarding close message to fluxer",
+					slog.Int("code", closeErr.Code),
+					slog.String("text", closeErr.Text),
+				)
+
+				sentFluxerClose = true
 				s.fluxer.write <- wsMessage{
 					websocket.CloseMessage,
 					websocket.FormatCloseMessage(closeErr.Code, closeErr.Text),
+				}
+
+				if sentClientClose {
+					return
 				}
 			} else {
 				slog.Warn("error reading from client; ending session", slog.Any("err", err))
@@ -438,9 +457,25 @@ func (s *session) run(shutdown <-chan struct{}) {
 		case err := <-s.fluxer.readErr:
 			var closeErr *websocket.CloseError
 			if errors.As(err, &closeErr) {
-				s.fluxer.write <- wsMessage{
+				if closeErr.Code == websocket.CloseAbnormalClosure {
+					slog.Debug("fluxer connection closed without sending close message")
+					return
+				}
+
+				slog.Debug(
+					"forwarding close message to client",
+					slog.Int("code", closeErr.Code),
+					slog.String("text", closeErr.Text),
+				)
+
+				sentClientClose = true
+				s.client.write <- wsMessage{
 					websocket.CloseMessage,
 					websocket.FormatCloseMessage(closeErr.Code, closeErr.Text),
+				}
+
+				if sentFluxerClose {
+					return
 				}
 			} else {
 				slog.Warn("error reading from fluxer; ending session", slog.Any("err", err))
