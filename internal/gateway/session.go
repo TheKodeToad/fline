@@ -215,8 +215,6 @@ func packetToFluxer(packet discord.Packet) (discord.Packet, error) {
 			return discord.Packet{}, err
 		}
 
-		fmt.Println(string(newData))
-
 		packet.Data = newData
 		return packet, nil
 	case discord.GatewayOpPresenceUpdate:
