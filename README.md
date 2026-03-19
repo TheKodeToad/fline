@@ -5,6 +5,8 @@ An experimental, work-in-progress and moderately serious API adapter specificall
 The goal is currently to allow bots which use the subset of features both on Fluxer and Discord to work smoothly with few code changes!
 I will also likely investigate the viability of supporting some of the features of the interactions API (perhaps slash commands could be processed from regular messages beginning with `/`).
 
+Note that I am just a nerd making this to learn cool stuff.
+
 ## Isn't Fluxer's API already compatible with Discord??
 
 There certainly are more simularities than differences, but the minor differences which break assumptions made by Discord bots and libraries add up. From my testing most libraries can't make it far without crashing when connecting directly to the Fluxer API.
