@@ -401,8 +401,7 @@ func (s *session) handleFluxerMsg(msg wsMessage) error {
 
 	newData, err := json.Marshal(outPacket)
 	if err != nil {
-		slog.Debug("failed to marshal modified fluxer packet", slog.Any("err", err))
-		return nil
+		return fmt.Errorf("failed to marshal modified fluxer packet: %w", err)
 	}
 
 	s.client.write <- wsMessage{
