@@ -355,6 +355,7 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		outEvent := convert.MessageCreateEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
 	default:
+		slog.Warn("received unknown event from fluxer: " + name)
 		return json.RawMessage{}, errNonConvertiblePacket
 	}
 }
@@ -403,7 +404,17 @@ func (s *session) handleFluxerMsg(msg wsMessage) error {
 
 	outPacket, err := packetToDiscord(inPacket, s.info)
 	if errors.Is(err, errNonConvertiblePacket) {
-		return nil
+		if inPacket.SequenceNum != nil {
+			// NOTE: make sure there is no skipping of sequence numbers
+			// this may generate other warnings, but at least the sequence number the client sends won't be outdated
+			outPacket = discord.Packet{
+				Opcode: discord.GatewayOpDispatch,
+				SequenceNum: inPacket.SequenceNum,
+				Event: "FLINE_NON_CONVERTIBLE",
+			}
+		} else {
+			return nil
+		}
 	} else if err != nil {
 		return fmt.Errorf("failed to convert packet to discord: %w", err)
 	}
