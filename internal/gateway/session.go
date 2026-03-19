@@ -312,8 +312,17 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		}
 
 		return json.Marshal(outChannel)
-	case "GUILD_DELETE":
-		// passthrough
+	case "GUILD_STICKERS_UPDATE":
+		var inEvent fluxer.GuildStickersUpdateEvent
+
+		err := json.Unmarshal(payload, &inEvent)
+		if err != nil {
+			return json.RawMessage{}, nil
+		}
+		
+		outEvent := convert.GuildStickersUpdateEventToDiscord(inEvent)
+		return json.Marshal(outEvent)
+	case "GUILD_EMOJI_UPDATE", "GUILD_DELETE":
 		return payload, nil
 	case "GUILD_CREATE":
 		var inEvent fluxer.GuildCreateEvent

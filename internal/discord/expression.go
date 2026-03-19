@@ -8,13 +8,26 @@ type Emoji struct {
 	Animated *bool         `json:"animated,omitempty"`
 }
 
+type StickerType uint
+
+const (
+	StickerTypeGuild StickerType = 2
+)
+
+type StickerFormat uint
+
+const (
+	StickerFormatPNG StickerFormat = 1
+	StickerFormatGIF StickerFormat = 4
+)
+
 type Sticker struct {
 	ID          snowflake.ID  `json:"id"`
 	Name        string        `json:"name"`
 	Description *string       `json:"description"`
 	Tags        string        `json:"tags"`
-	Type        int           `json:"type"`
-	FormatType  int           `json:"format_type"`
+	Type        StickerType   `json:"type"`
+	FormatType  StickerFormat `json:"format_type"`
 	Available   *bool         `json:"available,omitempty"`
 	GuildID     *snowflake.ID `json:"guild_id,omitempty"`
 	User        *User         `json:"user,omitempty"`

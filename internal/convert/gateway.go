@@ -29,11 +29,11 @@ func IdentifyPayloadToFluxer(payload discord.IdentifyPayload) fluxer.IdentifyPay
 	}
 
 	return fluxer.IdentifyPayload{
-		Token: payload.Token,
-		Properties: payload.Properties,
-		Compress: payload.Compress,
+		Token:          payload.Token,
+		Properties:     payload.Properties,
+		Compress:       payload.Compress,
 		LargeThreshold: payload.LargeThreshold,
-		Presence: presence,
+		Presence:       presence,
 	}
 }
 
@@ -78,7 +78,11 @@ func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreat
 	}
 
 	guild.Emojis = event.Emojis
-	guild.Stickers = event.Stickers
+
+	guild.Stickers = make([]discord.Sticker, 0, len(event.Stickers))
+	for _, sticker := range event.Stickers {
+		guild.Stickers = append(guild.Stickers, StickerToDiscord(sticker))
+	}
 
 	return discord.GuildCreateEvent{
 		Guild:       guild,
@@ -105,6 +109,18 @@ func GuildMembersChunkEventToDiscord(event fluxer.GuildMembersChunkEvent) discor
 		NotFound:   event.NotFound,
 		Presences:  event.Presences,
 		Nonce:      event.Nonce,
+	}
+}
+
+func GuildStickersUpdateEventToDiscord(event fluxer.GuildStickersUpdateEvent) discord.GuildStickersUpdateEvent {
+	stickers := make([]discord.Sticker, 0, len(event.Stickers))
+	for _, sticker := range event.Stickers {
+		stickers = append(stickers, StickerToDiscord(sticker))
+	}
+
+	return discord.GuildStickersUpdateEvent{
+		GuildID:  event.GuildID,
+		Stickers: stickers,
 	}
 }
 

@@ -37,9 +37,9 @@ type GuildCreateEvent struct {
 	Members     []GuildMember `json:"members"`
 	Channels    []Channel     `json:"channels"`
 	// NOTE: these fields are included inside a Discord guild, but Fluxer only sends them in the gateway event
-	Roles    []Role            `json:"roles"`
-	Emojis   []discord.Emoji   `json:"emojis"`
-	Stickers []discord.Sticker `json:"stickers,omitzero"`
+	Roles    []Role          `json:"roles"`
+	Emojis   []discord.Emoji `json:"emojis"`
+	Stickers []Sticker       `json:"stickers,omitzero"`
 }
 
 type GuildMembersChunkEvent struct {
@@ -50,6 +50,11 @@ type GuildMembersChunkEvent struct {
 	NotFound   []snowflake.ID `json:"not_found,omitzero"`
 	Presences  []todo         `json:"presences,omitzero"`
 	Nonce      *string        `json:"nonce,omitempty"`
+}
+
+type GuildStickersUpdateEvent struct {
+	GuildID  snowflake.ID `json:"guild_id"`
+	Stickers []Sticker    `json:"stickers"`
 }
 
 type MessageCreateEvent struct {

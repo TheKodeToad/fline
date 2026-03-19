@@ -153,6 +153,11 @@ type GuildMembersChunkEvent struct {
 	Nonce      *string        `json:"nonce,omitempty"`
 }
 
+type GuildStickersUpdateEvent struct {
+	GuildID  snowflake.ID `json:"guild_id"`
+	Stickers []Sticker    `json:"stickers"`
+}
+
 type MessageCreateEvent struct {
 	Message
 	GuildID *snowflake.ID `json:"guild_id,omitempty"`
