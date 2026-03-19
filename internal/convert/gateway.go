@@ -95,6 +95,13 @@ func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreat
 	}
 }
 
+func GuildMemberAddEventToDiscord(event fluxer.GuildMemberAddEvent) discord.GuildMemberAddEvent {
+	return discord.GuildMemberAddEvent{
+		GuildMember: GuildMemberToDiscord(event.GuildMember),
+		GuildID: event.GuildID,
+	}
+}
+
 func GuildMembersChunkEventToDiscord(event fluxer.GuildMembersChunkEvent) discord.GuildMembersChunkEvent {
 	members := make([]discord.GuildMember, 0, len(event.Members))
 	for _, member := range event.Members {

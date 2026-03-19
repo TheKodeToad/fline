@@ -42,6 +42,11 @@ type GuildCreateEvent struct {
 	Stickers []Sticker       `json:"stickers,omitzero"`
 }
 
+type GuildMemberAddEvent struct {
+	GuildMember
+	GuildID snowflake.ID `json:"guild_id"`
+}
+
 type GuildMembersChunkEvent struct {
 	GuildID    snowflake.ID   `json:"guild_id"`
 	Members    []GuildMember  `json:"members"`

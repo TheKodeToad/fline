@@ -143,6 +143,11 @@ type GuildCreateEvent struct {
 	Channels    []Channel     `json:"channels"`
 }
 
+type GuildMemberAddEvent struct {
+	GuildMember
+	GuildID snowflake.ID `json:"guild_id"`
+}
+
 type GuildMembersChunkEvent struct {
 	GuildID    snowflake.ID   `json:"guild_id"`
 	Members    []GuildMember  `json:"members"`
