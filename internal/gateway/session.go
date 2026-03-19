@@ -200,18 +200,34 @@ var errNonConvertiblePacket = errors.New("non-convertible packet")
 func packetToFluxer(packet discord.Packet) (discord.Packet, error) {
 	switch packet.Opcode {
 	case discord.GatewayOpHeartbeat,
-		discord.GatewayOpIdentify,
 		discord.GatewayOpRequestGuildMembers:
 		return packet, nil
-	case discord.GatewayOpPresenceUpdate:
-		var inUpdate discord.GatewayUpdatePresence
-		err := json.Unmarshal(packet.Data, &inUpdate)
+	case discord.GatewayOpIdentify:
+		var inPayload discord.IdentifyPayload
+		err := json.Unmarshal(packet.Data, &inPayload)
 		if err != nil {
 			return discord.Packet{}, err
 		}
 
-		outUpdate := convert.GatewayUpdatePresenceToFluxer(inUpdate)
-		newData, err := json.Marshal(outUpdate)
+		outPayload := convert.IdentifyPayloadToFluxer(inPayload)
+		newData, err := json.Marshal(outPayload)
+		if err != nil {
+			return discord.Packet{}, err
+		}
+
+		fmt.Println(string(newData))
+
+		packet.Data = newData
+		return packet, nil
+	case discord.GatewayOpPresenceUpdate:
+		var inPayload discord.UpdatePresencePayload
+		err := json.Unmarshal(packet.Data, &inPayload)
+		if err != nil {
+			return discord.Packet{}, err
+		}
+
+		outPayload := convert.PresenceUpdatePayloadToFluxer(inPayload)
+		newData, err := json.Marshal(outPayload)
 		if err != nil {
 			return discord.Packet{}, err
 		}
@@ -331,12 +347,12 @@ func packetToDiscord(packet discord.Packet, info sessionInfo) (discord.Packet, e
 		// passthrough
 		return packet, nil
 	case discord.GatewayOpDispatch:
-		data, err := eventToDiscord(packet.Event, packet.Data, info)
+		newData, err := eventToDiscord(packet.Event, packet.Data, info)
 		if err != nil {
 			return discord.Packet{}, fmt.Errorf("failed to convert event to discord: %w", err)
 		}
 
-		packet.Data = data
+		packet.Data = newData
 		return packet, nil
 	default:
 		return discord.Packet{}, errNonConvertiblePacket

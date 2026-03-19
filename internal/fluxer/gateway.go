@@ -5,6 +5,21 @@ import (
 	"github.com/disgoorg/snowflake/v2"
 )
 
+type UpdatePresencePayload struct {
+	Status       string        `json:"status"`
+	Mobile       bool          `json:"mobile"`
+	AFK          bool          `json:"afk"`
+	CustomStatus *CustomStatus `json:"custom_status,omitempty"`
+}
+
+type IdentifyPayload struct {
+	Token          string                     `json:"token"`
+	Properties     discord.IdentifyProperties `json:"properties"`
+	Compress       *bool                      `json:"compress,omitempty"`
+	LargeThreshold *int                       `json:"large_thresold,omitempty"`
+	Presence       *UpdatePresencePayload     `json:"presence,omitempty"`
+}
+
 type ReadyEvent struct {
 	Version          int                        `json:"version"`
 	User             UserPrivate                `json:"user"`
@@ -51,14 +66,7 @@ type CustomStatus struct {
 	ExpiresAt     *string       `json:"expires_at"`
 }
 
-type GatewayUpdatePresence struct {
-	Status       string        `json:"status"`
-	Mobile       bool          `json:"mobile"`
-	AFK          bool          `json:"afk"`
-	CustomStatus *CustomStatus `json:"custom_status,omitempty"`
-}
-
-type GatewayPresenceUpdate struct {
+type PresenceUpdateEvent struct {
 	GuildID *snowflake.ID `json:"guild_id"`
 	User    UserPartial   `json:"user"`
 	// TODO: draw the rest of the owl...

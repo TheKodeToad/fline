@@ -6,6 +6,37 @@ import (
 	"github.com/TheKodeToad/fline/internal/misc"
 )
 
+func PresenceUpdatePayloadToFluxer(payload discord.UpdatePresencePayload) fluxer.UpdatePresencePayload {
+	var customStatus *fluxer.CustomStatus
+	for _, activity := range payload.Activities {
+		if activity.Type == discord.ActivityCustom {
+			customStatus = &fluxer.CustomStatus{Text: activity.State}
+			break
+		}
+	}
+
+	return fluxer.UpdatePresencePayload{
+		Status:       payload.Status,
+		AFK:          payload.AFK,
+		CustomStatus: customStatus,
+	}
+}
+
+func IdentifyPayloadToFluxer(payload discord.IdentifyPayload) fluxer.IdentifyPayload {
+	var presence *fluxer.UpdatePresencePayload
+	if payload.Presence != nil {
+		presence = misc.New(PresenceUpdatePayloadToFluxer(*payload.Presence))
+	}
+
+	return fluxer.IdentifyPayload{
+		Token: payload.Token,
+		Properties: payload.Properties,
+		Compress: payload.Compress,
+		LargeThreshold: payload.LargeThreshold,
+		Presence: presence,
+	}
+}
+
 // ReadyEventToDiscord converts a Fluxer gateway ready event to a Discord one.
 // The ResumeGatewayURL had better be non-nil, you have been warned.
 func ReadyEventToDiscord(data fluxer.ReadyEvent) discord.ReadyEvent {
@@ -87,21 +118,5 @@ func MessageCreateEventToDiscord(event fluxer.MessageCreateEvent) discord.Messag
 		Message: MessageToDiscord(event.Message),
 		GuildID: event.GuildID,
 		Member:  member,
-	}
-}
-
-func GatewayUpdatePresenceToFluxer(update discord.GatewayUpdatePresence) fluxer.GatewayUpdatePresence {
-	var customStatus *fluxer.CustomStatus
-	for _, activity := range update.Activities {
-		if activity.Type == discord.ActivityCustom {
-			customStatus = &fluxer.CustomStatus{Text: activity.State}
-			break
-		}
-	}
-
-	return fluxer.GatewayUpdatePresence{
-		Status:       update.Status,
-		AFK:          update.AFK,
-		CustomStatus: customStatus,
 	}
 }

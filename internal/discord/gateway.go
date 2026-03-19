@@ -88,6 +88,28 @@ type Packet struct {
 	Event       string          `json:"t,omitempty"`
 }
 
+type IdentifyProperties struct {
+	OS      *string `json:"os"`
+	Browser *string `json:"browser"`
+	Device  *string `json:"device"`
+}
+
+type UpdatePresencePayload struct {
+	Activities []Activity `json:"activities"`
+	Status     string     `json:"status"`
+	AFK        bool       `json:"afk"`
+}
+
+type IdentifyPayload struct {
+	Token          string                 `json:"token"`
+	Properties     IdentifyProperties     `json:"properties"`
+	Compress       *bool                  `json:"compress,omitempty"`
+	LargeThreshold *int                   `json:"large_threshold,omitempty"`
+	Shard          *[2]int                `json:"shard,omitzero"`
+	Presence       *UpdatePresencePayload `json:"presence,omitempty"`
+	Intents        int                    `json:"intents"`
+}
+
 type ReadyEventApplication struct {
 	ID    snowflake.ID     `json:"id"`
 	Flags ApplicationFlags `json:"flags"`
@@ -148,10 +170,4 @@ type Activity struct {
 	Type  ActivityType `json:"type"`
 	State *string      `json:"state,omitempty"`
 	Emoji *Emoji       `json:"emoji,omitempty"`
-}
-
-type GatewayUpdatePresence struct {
-	Activities []Activity `json:"activities"`
-	Status     string     `json:"status"`
-	AFK        bool       `json:"afk"`
 }
