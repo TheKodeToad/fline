@@ -42,3 +42,24 @@ type MessageCreateEvent struct {
 	GuildID *snowflake.ID `json:"guild_id,omitempty"`
 	Member  *GuildMember  `json:"member,omitempty"`
 }
+
+type CustomStatus struct {
+	Text          *string       `json:"text"`
+	EmojiID       *snowflake.ID `json:"emoji_id"`
+	EmojiName     *string       `json:"emoji_name"`
+	EmojiAnimated bool          `json:"emoji_animated"`
+	ExpiresAt     *string       `json:"expires_at"`
+}
+
+type GatewayUpdatePresence struct {
+	Status       string        `json:"status"`
+	Mobile       bool          `json:"mobile"`
+	AFK          bool          `json:"afk"`
+	CustomStatus *CustomStatus `json:"custom_status,omitempty"`
+}
+
+type GatewayPresenceUpdate struct {
+	GuildID *snowflake.ID `json:"guild_id"`
+	User    UserPartial   `json:"user"`
+	// TODO: draw the rest of the owl...
+}

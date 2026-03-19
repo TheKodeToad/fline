@@ -89,3 +89,19 @@ func MessageCreateEventToDiscord(event fluxer.MessageCreateEvent) discord.Messag
 		Member:  member,
 	}
 }
+
+func GatewayUpdatePresenceToFluxer(update discord.GatewayUpdatePresence) fluxer.GatewayUpdatePresence {
+	var customStatus *fluxer.CustomStatus
+	for _, activity := range update.Activities {
+		if activity.Type == discord.ActivityCustom {
+			customStatus = &fluxer.CustomStatus{Text: activity.State}
+			break
+		}
+	}
+
+	return fluxer.GatewayUpdatePresence{
+		Status:       update.Status,
+		AFK:          update.AFK,
+		CustomStatus: customStatus,
+	}
+}

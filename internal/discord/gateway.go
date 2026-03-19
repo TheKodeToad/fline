@@ -136,3 +136,22 @@ type MessageCreateEvent struct {
 	GuildID *snowflake.ID `json:"guild_id,omitempty"`
 	Member  *GuildMember  `json:"member,omitempty"`
 }
+
+type ActivityType uint
+
+const (
+	ActivityCustom ActivityType = 4
+)
+
+type Activity struct {
+	Name  string       `json:"name"`
+	Type  ActivityType `json:"type"`
+	State *string      `json:"state,omitempty"`
+	Emoji *Emoji       `json:"emoji,omitempty"`
+}
+
+type GatewayUpdatePresence struct {
+	Activities []Activity `json:"activities"`
+	Status     string     `json:"status"`
+	AFK        bool       `json:"afk"`
+}

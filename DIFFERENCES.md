@@ -51,6 +51,9 @@ GET `users/{user_id}`:
 
 Fluxer doesn't seem to support sharding apart from including some related constants and including `shards` as `1` in the gateway info endpoint for compatibility with Discord libs.
 
+Presence:
+- Instead of `activities`, Fluxer has a single `custom_status` value.
+
 `READY` event:
 - The `application` field is missing.
 - The `resume_gateway_url` field is missing.

@@ -203,6 +203,21 @@ func packetToFluxer(packet discord.Packet) (discord.Packet, error) {
 		discord.GatewayOpIdentify,
 		discord.GatewayOpRequestGuildMembers:
 		return packet, nil
+	case discord.GatewayOpPresenceUpdate:
+		var inUpdate discord.GatewayUpdatePresence
+		err := json.Unmarshal(packet.Data, &inUpdate)
+		if err != nil {
+			return discord.Packet{}, err
+		}
+
+		outUpdate := convert.GatewayUpdatePresenceToFluxer(inUpdate)
+		newData, err := json.Marshal(outUpdate)
+		if err != nil {
+			return discord.Packet{}, err
+		}
+
+		packet.Data = newData
+		return packet, nil
 	default:
 		return discord.Packet{}, errNonConvertiblePacket
 	}
@@ -282,16 +297,6 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		// NOTE: Fluxer doesn't currently support sharding, but some libs may break without this :)
 		outEvent.Shard = misc.New([2]int{0, 1})
 		return json.Marshal(outEvent)
-	case "MESSAGE_CREATE":
-		var inEvent fluxer.MessageCreateEvent
-
-		err := json.Unmarshal(payload, &inEvent)
-		if err != nil {
-			return json.RawMessage{}, err
-		}
-
-		outEvent := convert.MessageCreateEventToDiscord(inEvent)
-		return json.Marshal(outEvent)
 	case "GUILD_MEMBERS_CHUNK":
 		var inEvent fluxer.GuildMembersChunkEvent
 
@@ -301,6 +306,16 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		}
 
 		outEvent := convert.GuildMembersChunkEventToDiscord(inEvent)
+		return json.Marshal(outEvent)
+	case "MESSAGE_CREATE":
+		var inEvent fluxer.MessageCreateEvent
+
+		err := json.Unmarshal(payload, &inEvent)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outEvent := convert.MessageCreateEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
 	default:
 		return json.RawMessage{}, errNonConvertiblePacket
