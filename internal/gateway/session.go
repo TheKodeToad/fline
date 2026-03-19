@@ -200,7 +200,8 @@ var errNonConvertiblePacket = errors.New("non-convertible packet")
 func packetToFluxer(packet discord.Packet) (discord.Packet, error) {
 	switch packet.Opcode {
 	case discord.GatewayOpHeartbeat,
-		discord.GatewayOpRequestGuildMembers:
+		discord.GatewayOpRequestGuildMembers,
+		discord.GatewayOpResume:
 		return packet, nil
 	case discord.GatewayOpIdentify:
 		var inPayload discord.IdentifyPayload
@@ -298,6 +299,8 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		// NOTE: Fluxer doesn't currently support sharding, but some libs may break without this :)
 		outEvent.Shard = misc.New([2]int{0, 1})
 		return json.Marshal(outEvent)
+	case "RESUMED":
+		return payload, nil
 	case "CHANNEL_CREATE", "CHANNEL_UPDATE":
 		var inChannel fluxer.Channel
 
@@ -395,6 +398,7 @@ func packetToDiscord(packet discord.Packet, info sessionInfo) (discord.Packet, e
 	case discord.GatewayOpHello,
 		discord.GatewayOpHeartbeat,
 		discord.GatewayOpHeartbeatAck,
+		discord.GatewayOpReconnect,
 		discord.GatewayOpInvalidSession:
 		// passthrough
 		return packet, nil

@@ -59,7 +59,7 @@ func RoleToDiscord(role fluxer.Role) discord.Role {
 		Hoist: role.Hoist,
 		UnicodeEmoji: role.UnicodeEmoji,
 		Position: role.Position,
-		Permissions: role.Permissions,
+		Permissions: PermissionsToDiscord(role.Permissions),
 		Mentionable: role.Mentionable,
 	}
 }
