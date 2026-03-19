@@ -322,7 +322,7 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		
 		outEvent := convert.GuildStickersUpdateEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
-	case "GUILD_EMOJI_UPDATE", "GUILD_DELETE":
+	case "GUILD_EMOJI_UPDATE", "GUILD_DELETE", "GUILD_ROLE_DELETE":
 		return payload, nil
 	case "GUILD_CREATE":
 		var inEvent fluxer.GuildCreateEvent
@@ -363,6 +363,16 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		}
 
 		outEvent := convert.GuildMembersChunkEventToDiscord(inEvent)
+		return json.Marshal(outEvent)
+	case "GUILD_ROLE_CREATE", "GUILD_ROLE_UPDATE":
+		var inEvent fluxer.GuildRoleEvent
+
+		err := json.Unmarshal(payload, &inEvent)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outEvent := convert.GuildRoleEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
 	case "MESSAGE_CREATE":
 		var inEvent fluxer.MessageCreateEvent

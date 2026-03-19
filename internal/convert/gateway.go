@@ -146,6 +146,13 @@ func GuildStickersUpdateEventToDiscord(event fluxer.GuildStickersUpdateEvent) di
 	}
 }
 
+func GuildRoleEventToDiscord(event fluxer.GuildRoleEvent) discord.GuildRoleEvent {
+	return discord.GuildRoleEvent{
+		GuildID: event.GuildID,
+		Role: RoleToDiscord(event.Role),
+	}
+}
+
 func MessageCreateEventToDiscord(event fluxer.MessageCreateEvent) discord.MessageCreateEvent {
 	var member *discord.GuildMember
 	if event.Member != nil {

@@ -75,6 +75,11 @@ type GuildStickersUpdateEvent struct {
 	Stickers []Sticker    `json:"stickers"`
 }
 
+type GuildRoleEvent struct {
+	GuildID snowflake.ID `json:"guild_id"`
+	Role    Role         `json:"role"`
+}
+
 type MessageCreateEvent struct {
 	Message
 	GuildID *snowflake.ID `json:"guild_id,omitempty"`
