@@ -1,6 +1,6 @@
 # Fline
 
-An experimental, work-in-progress and moderately serious API compatibility layer specifically for running Discord bots on Fluxer. The name stands for "Fline is not an emulator" (this might seem familiar).
+An experimental, work-in-progress and moderately serious API adapter specifically for running Discord bots on Fluxer. The name stands for "Fline is not an emulator" (this might seem familiar).
 
 The goal is currently to allow bots which use the subset of features both on Fluxer and Discord to work smoothly with few code changes!
 I will also likely investigate the viability of supporting some of the features of the interactions API (perhaps slash commands could be processed from regular messages beginning with `/`).
