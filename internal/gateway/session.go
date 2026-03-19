@@ -278,19 +278,6 @@ func (s *session) handleClientMsg(msg wsMessage) error {
 
 func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (json.RawMessage, error) {
 	switch name {
-	case "GUILD_DELETE":
-		// passthrough
-		return payload, nil
-	case "GUILD_CREATE":
-		var inEvent fluxer.GuildCreateEvent
-
-		err := json.Unmarshal(payload, &inEvent)
-		if err != nil {
-			return json.RawMessage{}, err
-		}
-
-		outEvent := convert.GuildCreateEventToDiscord(inEvent)
-		return json.Marshal(outEvent)
 	case "READY":
 		var inEvent fluxer.ReadyEvent
 
@@ -310,6 +297,33 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		outEvent := convert.ReadyEventToDiscord(inEvent)
 		// NOTE: Fluxer doesn't currently support sharding, but some libs may break without this :)
 		outEvent.Shard = misc.New([2]int{0, 1})
+		return json.Marshal(outEvent)
+	case "CHANNEL_CREATE", "CHANNEL_UPDATE":
+		var inChannel fluxer.Channel
+
+		err := json.Unmarshal(payload, &inChannel)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outChannel, ok := convert.ChannelToDiscord(inChannel)
+		if !ok {
+			return nil, errNonConvertiblePacket
+		}
+
+		return json.Marshal(outChannel)
+	case "GUILD_DELETE":
+		// passthrough
+		return payload, nil
+	case "GUILD_CREATE":
+		var inEvent fluxer.GuildCreateEvent
+
+		err := json.Unmarshal(payload, &inEvent)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outEvent := convert.GuildCreateEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
 	case "GUILD_MEMBERS_CHUNK":
 		var inEvent fluxer.GuildMembersChunkEvent
