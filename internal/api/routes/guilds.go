@@ -69,6 +69,13 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
+	router.Method("DELETE", "/{guild_id}/members/{user_id}", api.ProxyHandler[any, api.NoContentResponse]{
+		Conf: conf,
+		Client: client,
+		Path: "/guilds/{guild_id}/members/{user_id}",
+		DecodeResponse: api.ExpectNoContentResponse,
+	})
+
 	memberRole := api.ProxyHandler[any, api.NoContentResponse]{
 		Conf:           conf,
 		Client:         client,
