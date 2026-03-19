@@ -47,6 +47,19 @@ type GuildMemberAddEvent struct {
 	GuildID snowflake.ID `json:"guild_id"`
 }
 
+type GuildMemberUpdateEvent struct {
+	GuildID                    snowflake.ID   `json:"guild_id"`
+	Roles                      []snowflake.ID `json:"roles"`
+	User                       UserPartial    `json:"user"`
+	Nick                       *string        `json:"nick"`
+	Avatar                     *string        `json:"avatar"`
+	Banner                     *string        `json:"banner"`
+	JoinedAt                   *string        `json:"joined_at"`
+	Deaf                       *bool          `json:"deaf"`
+	Mute                       *bool          `json:"mute"`
+	CommunicationDisabledUntil *string        `json:"communication_disabled_until"`
+}
+
 type GuildMembersChunkEvent struct {
 	GuildID    snowflake.ID   `json:"guild_id"`
 	Members    []GuildMember  `json:"members"`
