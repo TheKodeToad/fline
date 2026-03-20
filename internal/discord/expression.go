@@ -3,9 +3,13 @@ package discord
 import "github.com/disgoorg/snowflake/v2"
 
 type Emoji struct {
-	ID       *snowflake.ID `json:"id"`
-	Name     *string       `json:"name"`
-	Animated *bool         `json:"animated,omitempty"`
+	ID            *snowflake.ID  `json:"id"`
+	Name          *string        `json:"name"`
+	Roles         []snowflake.ID `json:"roles,omitzero"`
+	RequireColons *bool          `json:"require_colons,omitempty"`
+	Managed       *bool          `json:"managed,omitempty"`
+	Animated      *bool          `json:"animated,omitempty"`
+	Available     *bool          `json:"available,omitempty"`
 }
 
 type StickerType uint

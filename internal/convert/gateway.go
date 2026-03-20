@@ -77,7 +77,10 @@ func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreat
 		guild.Roles = append(guild.Roles, RoleToDiscord(role))
 	}
 
-	guild.Emojis = event.Emojis
+	guild.Emojis = make([]discord.Emoji, 0, len(event.Emojis))
+	for _, emoji := range event.Emojis {
+		guild.Emojis = append(guild.Emojis, EmojiToDiscord(emoji))
+	}
 
 	guild.Stickers = make([]discord.Sticker, 0, len(event.Stickers))
 	for _, sticker := range event.Stickers {

@@ -6,9 +6,9 @@ import (
 )
 
 type Reaction struct {
-	Emoji discord.Emoji `json:"emoji"`
-	Count int           `json:"count"`
-	Me    bool          `json:"me"`
+	Emoji Emoji `json:"emoji"`
+	Count int   `json:"count"`
+	Me    bool  `json:"me"`
 }
 
 type Message struct {

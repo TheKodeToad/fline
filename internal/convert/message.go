@@ -47,7 +47,7 @@ func ReactionToDiscord(reaction fluxer.Reaction) discord.Reaction {
 		},
 		Me:          reaction.Me,
 		MeBurst:     false,
-		Emoji:       reaction.Emoji,
+		Emoji:       EmojiToDiscord(reaction.Emoji),
 		BurstColors: []uint{},
 	}
 }

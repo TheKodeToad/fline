@@ -37,9 +37,9 @@ type GuildCreateEvent struct {
 	Members     []GuildMember `json:"members"`
 	Channels    []Channel     `json:"channels"`
 	// NOTE: these fields are included inside a Discord guild, but Fluxer only sends them in the gateway event
-	Roles    []Role          `json:"roles"`
-	Emojis   []discord.Emoji `json:"emojis"`
-	Stickers []Sticker       `json:"stickers,omitzero"`
+	Roles    []Role    `json:"roles"`
+	Emojis   []Emoji   `json:"emojis"`
+	Stickers []Sticker `json:"stickers,omitzero"`
 }
 
 type GuildMemberAddEvent struct {
