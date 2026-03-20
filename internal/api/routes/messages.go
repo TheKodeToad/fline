@@ -310,6 +310,15 @@ func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
+	router.Method("GET", "/{message_id}", api.ProxyHandler[any, fluxer.Message]{
+		Conf:           conf,
+		Client:         client,
+		Path:           "/channels/{channel_id}/messages/{message_id}",
+		MapResponse: func(message fluxer.Message) (any, error) {
+			return convert.MessageToDiscord(message), nil
+		},
+	})
+
 	router.Method("DELETE", "/{message_id}", api.ProxyHandler[any, api.EmptyResponse]{
 		Conf:           conf,
 		Client:         client,
