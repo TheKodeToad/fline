@@ -29,7 +29,7 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 		auditLogReason string
 	}
 
-	router.Method("PUT", "/{guild_id}/bans/{user_id}", api.ProxyHandler[banCreate, api.NoContentResponse]{
+	router.Method("PUT", "/{guild_id}/bans/{user_id}", api.ProxyHandler[banCreate, api.EmptyResponse]{
 		Client: client,
 		Conf:   conf,
 		Path:   "/guilds/{guild_id}/bans/{user_id}",
@@ -57,7 +57,9 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 
 			return outCreate, nil
 		},
-		DecodeResponse: api.ExpectNoContentResponse,
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
+		},
 	})
 
 	router.Method("GET", "/{guild_id}/members/{user_id}", api.ProxyHandler[any, fluxer.GuildMember]{
@@ -82,18 +84,22 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
-	router.Method("DELETE", "/{guild_id}/members/{user_id}", api.ProxyHandler[any, api.NoContentResponse]{
+	router.Method("DELETE", "/{guild_id}/members/{user_id}", api.ProxyHandler[any, api.EmptyResponse]{
 		Conf:           conf,
 		Client:         client,
 		Path:           "/guilds/{guild_id}/members/{user_id}",
-		DecodeResponse: api.ExpectNoContentResponse,
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
+		},
 	})
 
-	memberRole := api.ProxyHandler[any, api.NoContentResponse]{
+	memberRole := api.ProxyHandler[any, api.EmptyResponse]{
 		Conf:           conf,
 		Client:         client,
 		Path:           "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
-		DecodeResponse: api.ExpectNoContentResponse,
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
+		},
 	}
 
 	router.Method("PUT", "/{guild_id}/members/{user_id}/roles/{role_id}", memberRole)

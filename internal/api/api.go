@@ -19,9 +19,13 @@ import (
 	"github.com/TheKodeToad/fline/internal/fluxer"
 )
 
-// NoContentResponse simply represents a 204 response with no body.
+// EmptyResponse simply represents a response with no body.
 // It can be returned as the former value of a [HandlerFunc].
-type NoContentResponse struct{}
+type EmptyResponse struct {
+	// Status is the status to return.
+	// By default it is 204: No Content.
+	Status int
+}
 
 // Error simply contains a Discord API error with a Status.
 // It can be returned as the latter value of a [HandlerFunc] to yield an error response.
@@ -81,8 +85,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Status: status,
 			}
 		}
-	} else if _, ok := respObject.(NoContentResponse); ok {
-		w.WriteHeader(http.StatusNoContent)
+	} else if emptyResp, ok := respObject.(EmptyResponse); ok {
+		if emptyResp.Status == 0 {
+			w.WriteHeader(http.StatusNoContent)
+		} else {
+			w.WriteHeader(emptyResp.Status)
+		}
 		return
 	} else if _, ok := respObject.(Error); ok {
 		panic("handler returned apiError as response. it should be returned as the latter value (error).")
@@ -293,9 +301,9 @@ func DecodeResponseJSON[T any](resp *http.Response) (T, error) {
 	return result, nil
 }
 
-func ExpectNoContentResponse(resp *http.Response) (NoContentResponse, error) {
-	if resp.StatusCode != http.StatusNoContent {
-		return NoContentResponse{}, fmt.Errorf(
+func ExpectEmptyResponse(resp *http.Response, status int) (EmptyResponse, error) {
+	if resp.StatusCode != status {
+		return EmptyResponse{}, fmt.Errorf(
 			"expected status %d %s but got %s",
 			http.StatusNoContent,
 			http.StatusText(http.StatusNoContent),
@@ -303,7 +311,16 @@ func ExpectNoContentResponse(resp *http.Response) (NoContentResponse, error) {
 		)
 	}
 
-	return NoContentResponse{}, nil
+	_, err := resp.Body.Read(make([]byte, 1))
+	if !errors.Is(err, io.EOF) {
+		if err != nil {
+			return EmptyResponse{}, fmt.Errorf("Body.Read returned non-EOF error: %w", err)
+		} else {
+			return EmptyResponse{}, errors.New("non-empty body")
+		}
+	}
+
+	return EmptyResponse{status}, nil
 }
 
 // ProxyHandler forwards the request to a Fluxer URL and allows transformation of the response.

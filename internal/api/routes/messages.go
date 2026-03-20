@@ -310,28 +310,34 @@ func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
-	router.Method("DELETE", "/{message_id}", api.ProxyHandler[any, api.NoContentResponse]{
+	router.Method("DELETE", "/{message_id}", api.ProxyHandler[any, api.EmptyResponse]{
 		Conf:           conf,
 		Client:         client,
 		Path:           "/channels/{channel_id}/messages/{message_id}",
-		DecodeResponse: api.ExpectNoContentResponse,
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
+		},
 	})
 
-	router.Method("POST", "/bulk-delete", api.ProxyHandler[discord.MessageBulkDelete, api.NoContentResponse]{
+	router.Method("POST", "/bulk-delete", api.ProxyHandler[discord.MessageBulkDelete, api.EmptyResponse]{
 		Conf:           conf,
 		Client:         client,
 		Path:           "/channels/{channel_id}/messages/bulk-delete",
 		MapRequest: func(body discord.MessageBulkDelete) (any, error) {
 			return convert.MessageBulkDeleteToFluxer(body), nil
 		},
-		DecodeResponse: api.ExpectNoContentResponse,
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
+		},
 	})
 
-	router.Method("PUT", "/{message_id}/reactions/{emoji_id}/@me", api.ProxyHandler[any, api.NoContentResponse]{
+	router.Method("PUT", "/{message_id}/reactions/{emoji_id}/@me", api.ProxyHandler[any, api.EmptyResponse]{
 		Conf:           conf,
 		Client:         client,
 		Path:           "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_id}/@me",
-		DecodeResponse: api.ExpectNoContentResponse,
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
+		},
 	})
 
 	return router
