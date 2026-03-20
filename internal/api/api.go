@@ -305,8 +305,8 @@ func ExpectEmptyResponse(resp *http.Response, status int) (EmptyResponse, error)
 	if resp.StatusCode != status {
 		return EmptyResponse{}, fmt.Errorf(
 			"expected status %d %s but got %s",
-			http.StatusNoContent,
-			http.StatusText(http.StatusNoContent),
+			status,
+			http.StatusText(status),
 			resp.Status,
 		)
 	}
