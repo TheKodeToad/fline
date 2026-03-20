@@ -101,21 +101,21 @@ func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreat
 func GuildMemberAddEventToDiscord(event fluxer.GuildMemberAddEvent) discord.GuildMemberAddEvent {
 	return discord.GuildMemberAddEvent{
 		GuildMember: GuildMemberToDiscord(event.GuildMember),
-		GuildID: event.GuildID,
+		GuildID:     event.GuildID,
 	}
 }
 
 func GuildMemberUpdateEventToDiscord(event fluxer.GuildMemberUpdateEvent) discord.GuildMemberUpdateEvent {
 	return discord.GuildMemberUpdateEvent{
-		GuildID: event.GuildID,
-		Roles: event.Roles,
-		User:  UserPartialToDiscord(event.User)	,
-		Nick: event.Nick,
-		Avatar: event.Avatar,
-		Banner: event.Banner,
-		JoinedAt: event.JoinedAt,
-		Deaf: event.Deaf,
-		Mute: event.Mute,
+		GuildID:                    event.GuildID,
+		Roles:                      event.Roles,
+		User:                       UserPartialToDiscord(event.User),
+		Nick:                       event.Nick,
+		Avatar:                     event.Avatar,
+		Banner:                     event.Banner,
+		JoinedAt:                   event.JoinedAt,
+		Deaf:                       event.Deaf,
+		Mute:                       event.Mute,
 		CommunicationDisabledUntil: event.CommunicationDisabledUntil,
 	}
 }
@@ -152,7 +152,7 @@ func GuildStickersUpdateEventToDiscord(event fluxer.GuildStickersUpdateEvent) di
 func GuildRoleEventToDiscord(event fluxer.GuildRoleEvent) discord.GuildRoleEvent {
 	return discord.GuildRoleEvent{
 		GuildID: event.GuildID,
-		Role: RoleToDiscord(event.Role),
+		Role:    RoleToDiscord(event.Role),
 	}
 }
 
@@ -166,5 +166,31 @@ func MessageCreateEventToDiscord(event fluxer.MessageCreateEvent) discord.Messag
 		Message: MessageToDiscord(event.Message),
 		GuildID: event.GuildID,
 		Member:  member,
+	}
+}
+
+func MessageReactionAddEventToDiscord(event fluxer.MessageReactionAddEvent) discord.MessageReactionAddEvent {
+	var member *discord.GuildMember
+	if event.Member != nil {
+		member = misc.New(GuildMemberToDiscord(*event.Member))
+	}
+
+	return discord.MessageReactionAddEvent{
+		UserID:    event.UserID,
+		ChannelID: event.ChannelID,
+		MessageID: event.MessageID,
+		GuildID:   event.GuildID,
+		Member:    member,
+		Emoji:     EmojiToDiscord(event.Emoji),
+	}
+}
+
+func MessageReactionRemoveEventToDiscord(event fluxer.MessageReactionRemoveEvent) discord.MessageReactionRemoveEvent {
+	return discord.MessageReactionRemoveEvent{
+		UserID:    event.UserID,
+		ChannelID: event.ChannelID,
+		MessageID: event.MessageID,
+		GuildID:   event.GuildID,
+		Emoji:     EmojiToDiscord(event.Emoji),
 	}
 }

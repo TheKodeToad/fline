@@ -387,6 +387,26 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 
 		outEvent := convert.MessageCreateEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
+	case "MESSAGE_REACTION_ADD":
+		var inEvent fluxer.MessageReactionAddEvent
+
+		err := json.Unmarshal(payload, &inEvent)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outEvent := convert.MessageReactionAddEventToDiscord(inEvent)
+		return json.Marshal(outEvent)
+	case "MESSAGE_REACTION_REMOVE":
+		var inEvent fluxer.MessageReactionRemoveEvent
+
+		err := json.Unmarshal(payload, &inEvent)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outEvent := convert.MessageReactionRemoveEventToDiscord(inEvent)
+		return json.Marshal(outEvent)
 	default:
 		slog.Warn("received unknown event from fluxer: " + name)
 		return json.RawMessage{}, errNonConvertiblePacket

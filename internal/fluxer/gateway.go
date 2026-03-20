@@ -86,6 +86,23 @@ type MessageCreateEvent struct {
 	Member  *GuildMember  `json:"member,omitempty"`
 }
 
+type MessageReactionAddEvent struct {
+	UserID    snowflake.ID  `json:"user_id"`
+	ChannelID snowflake.ID  `json:"channel_id"`
+	MessageID snowflake.ID  `json:"message_id"`
+	GuildID   *snowflake.ID `json:"guild_id,omitempty"`
+	Member    *GuildMember  `json:"member,omitempty"`
+	Emoji     Emoji         `json:"emoji"`
+}
+
+type MessageReactionRemoveEvent struct {
+	UserID    snowflake.ID  `json:"user_id"`
+	ChannelID snowflake.ID  `json:"channel_id"`
+	MessageID snowflake.ID  `json:"message_id"`
+	GuildID   *snowflake.ID `json:"guild_id,omitempty"`
+	Emoji     Emoji         `json:"emoji"`
+}
+
 type CustomStatus struct {
 	Text          *string       `json:"text"`
 	EmojiID       *snowflake.ID `json:"emoji_id"`

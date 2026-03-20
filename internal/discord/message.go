@@ -73,6 +73,12 @@ type ReactionCountDetails struct {
 	Normal int `json:"normal"`
 }
 
+type ReactionType uint
+
+const (
+	ReactionTypeNormal ReactionType = 0
+)
+
 type Reaction struct {
 	Count        int                  `json:"count"`
 	CountDetails ReactionCountDetails `json:"count_details"`
