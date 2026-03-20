@@ -349,5 +349,14 @@ func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
+	router.Method("DELETE", "/{message_id}/reactions", api.ProxyHandler[any, api.EmptyResponse]{
+		Conf:           conf,
+		Client:         client,
+		Path:           "/channels/{channel_id}/messages/{message_id}/reactions",
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
+		},
+	})
+
 	return router
 }
