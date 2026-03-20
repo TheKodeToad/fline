@@ -56,6 +56,21 @@ func GuildMemberToDiscord(member fluxer.GuildMember) discord.GuildMember {
 	}
 }
 
+func GuildMemberUpdateToFluxer(update discord.GuildMemberUpdate) fluxer.GuildMemberUpdate {
+	return fluxer.GuildMemberUpdate{
+		Nick:                       update.Nick,
+		Roles:                      update.Roles,
+		Mute:                       update.Mute,
+		Deaf:                       update.Deaf,
+		ChannelID:                  update.ChannelID,
+		CommunicationDisabledUntil: update.CommunicationDisabledUntil,
+
+		ClearNick:    update.Nick != nil && *update.Nick == "",
+		ClearChannel: update.ClearChannel,
+		ClearTimeout: update.CommunicationDisabledUntil != nil && *update.CommunicationDisabledUntil == "",
+	}
+}
+
 func GuildBanCreateToFluxer(create discord.GuildBanCreate) fluxer.GuildBanCreate {
 	var deleteMessageDays int
 	// TODO: check which takes precidence on Discord and update it accordingly if necessary

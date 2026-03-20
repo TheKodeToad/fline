@@ -61,18 +61,31 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 	})
 
 	router.Method("GET", "/{guild_id}/members/{user_id}", api.ProxyHandler[any, fluxer.GuildMember]{
-		Conf: conf,
+		Conf:   conf,
 		Client: client,
-		Path: "/guilds/{guild_id}/members/{user_id}",
+		Path:   "/guilds/{guild_id}/members/{user_id}",
+		MapResponse: func(member fluxer.GuildMember) (any, error) {
+			return convert.GuildMemberToDiscord(member), nil
+		},
+	})
+
+	router.Method("PATCH", "/{guild_id}/members/{user_id}", api.ProxyHandler[discord.GuildMemberUpdate, fluxer.GuildMember]{
+		Conf:          conf,
+		Client:        client,
+		Path:          "/guilds/{guild_id}/members/{user_id}",
+		DecodeRequest: api.DecodeOptionalRequestJSON[discord.GuildMemberUpdate],
+		MapRequest: func(update discord.GuildMemberUpdate) (any, error) {
+			return convert.GuildMemberUpdateToFluxer(update), nil
+		},
 		MapResponse: func(member fluxer.GuildMember) (any, error) {
 			return convert.GuildMemberToDiscord(member), nil
 		},
 	})
 
 	router.Method("DELETE", "/{guild_id}/members/{user_id}", api.ProxyHandler[any, api.NoContentResponse]{
-		Conf: conf,
-		Client: client,
-		Path: "/guilds/{guild_id}/members/{user_id}",
+		Conf:           conf,
+		Client:         client,
+		Path:           "/guilds/{guild_id}/members/{user_id}",
 		DecodeResponse: api.ExpectNoContentResponse,
 	})
 

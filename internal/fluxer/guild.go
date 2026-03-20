@@ -1,6 +1,9 @@
 package fluxer
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/disgoorg/snowflake/v2"
 )
@@ -43,6 +46,94 @@ type GuildMember struct {
 	Deaf                       bool           `json:"deaf"`
 	Mute                       bool           `json:"mute"`
 	CommunicationDisabledUntil *string        `json:"communication_disabled_until"`
+}
+
+type GuildMemberUpdate struct {
+	Nick                       *string
+	Roles                      []snowflake.ID
+	Mute                       *bool
+	Deaf                       *bool
+	ChannelID                  *snowflake.ID
+	CommunicationDisabledUntil *string
+
+	// NOTE: Fluxer's semantics are different
+	// an empty nick/communication_disabled_until string is not semantically equivilent to null
+	ClearNick    bool
+	ClearChannel bool
+	ClearTimeout bool
+}
+
+func (u GuildMemberUpdate) MarshalJSON() ([]byte, error) {
+	var raw struct {
+		Nick                       json.RawMessage `json:"nick,omitempty"`
+		Roles                      json.RawMessage `json:"roles,omitempty"`
+		Mute                       json.RawMessage `json:"mute,omitempty"`
+		Deaf                       json.RawMessage `json:"deaf,omitempty"`
+		ChannelID                  json.RawMessage `json:"channel_id,omitempty"`
+		CommunicationDisabledUntil json.RawMessage `json:"communication_disabled_until,omitempty"`
+	}
+
+	if u.ClearNick {
+		raw.Nick = []byte("null")
+	} else if u.Nick != nil {
+		data, err := json.Marshal(u.Nick)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling GuildMemberUpdate.Nick: %w", err)
+		}
+
+		raw.Nick = data
+	}
+
+	if u.Roles != nil {
+		data, err := json.Marshal(u.Roles)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling GuildMemberUpdate.Nick: %w", err)
+		}
+
+		raw.Roles = data
+	}
+
+	if u.Mute != nil {
+		data, err := json.Marshal(u.Mute)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling GuildMemberUpdate.Mute: %w", err)
+		}
+
+		raw.Mute = data
+	}
+
+	if u.Deaf != nil {
+		data, err := json.Marshal(u.Deaf)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling GuildMemberUpdate.Deaf: %w", err)
+		}
+
+		raw.Deaf = data
+	}
+
+	if u.ClearChannel {
+		raw.ChannelID = []byte("null")
+	} else if u.ChannelID != nil {
+		data, err := json.Marshal(u.ChannelID)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling GuildMemberUpdate.ChannelID: %w", err)
+		}
+
+		raw.ChannelID = data
+	}
+
+	if u.ClearTimeout {
+		raw.CommunicationDisabledUntil = []byte("null")
+	} else if u.CommunicationDisabledUntil != nil {
+		data, err := json.Marshal(u.CommunicationDisabledUntil)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling GuildMemberUpdate.CommunicationDisabledUntil: %w", err)
+		}
+
+		raw.CommunicationDisabledUntil = data
+	}
+
+	return json.Marshal(raw)
 }
 
 type GuildBanCreate struct {

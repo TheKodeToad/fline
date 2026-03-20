@@ -1,6 +1,10 @@
 package discord
 
 import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/TheKodeToad/fline/internal/misc"
 	"github.com/disgoorg/snowflake/v2"
 )
 
@@ -46,6 +50,93 @@ type GuildMember struct {
 	Mute                       bool           `json:"mute"`
 	Flags                      uint           `json:"flags"`
 	CommunicationDisabledUntil *string        `json:"communication_disabled_until"`
+}
+
+type GuildMemberUpdate struct {
+	Nick                       *string
+	Roles                      []snowflake.ID
+	Mute                       *bool
+	Deaf                       *bool
+	ChannelID                  *snowflake.ID
+	CommunicationDisabledUntil *string
+
+	ClearChannel bool
+}
+
+func (u *GuildMemberUpdate) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Nick                       json.RawMessage `json:"nick"`
+		Roles                      json.RawMessage `json:"roles"`
+		Mute                       json.RawMessage `json:"mute"`
+		Deaf                       json.RawMessage `json:"deaf"`
+		ChannelID                  json.RawMessage `json:"channel_id"`
+		CommunicationDisabledUntil json.RawMessage `json:"communication_disabled_until"`
+	}
+	err := json.Unmarshal(data, &raw)
+	if err != nil {
+		return err
+	}
+
+	*u = GuildMemberUpdate{}
+
+	// NOTE: we unfortunately need this manual parsing to distinguish between null and undefined
+	// fortunately for most of the fields, null is semantically equivilent to specifying the default value
+
+	if string(raw.Nick) == "null" {
+		u.Nick = misc.New("")
+	} else if raw.Nick != nil {
+		err := json.Unmarshal(raw.Nick, &u.Nick)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into GuildMemberUpdate.Nick: %w", err)
+		}
+	}
+
+	if string(raw.Roles) == "null" {
+		u.Roles = []snowflake.ID{}
+	} else if raw.Roles != nil {
+		err := json.Unmarshal(raw.Roles, &u.Roles)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into GuildMemberUpdate.Roles: %w", err)
+		}
+	}
+
+	if string(raw.Mute) == "null" {
+		u.Mute = misc.New(false)
+	} else if raw.Mute != nil {
+		err := json.Unmarshal(raw.Mute, &u.Mute)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into GuildMemberUpdate.Mute: %w", err)
+		}
+	}
+
+	if string(raw.Deaf) == "null" {
+		u.Deaf = misc.New(false)
+	} else if raw.Deaf != nil {
+		err := json.Unmarshal(raw.Deaf, &u.Deaf)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into GuildMemberUpdate.Deaf: %w", err)
+		}
+	}
+
+	if string(raw.ChannelID) == "null" {
+		u.ClearChannel = true
+	} else if raw.ChannelID != nil {
+		err := json.Unmarshal(raw.ChannelID, &u.ChannelID)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into GuildMemberUpdate.ChannelID: %w", err)
+		}
+	}
+
+	if string(raw.CommunicationDisabledUntil) == "null" {
+		u.CommunicationDisabledUntil = misc.New("")
+	} else if raw.CommunicationDisabledUntil != nil {
+		err := json.Unmarshal(raw.CommunicationDisabledUntil, &u.CommunicationDisabledUntil)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into GuildMemberUpdate.CommunicationDisabledUntil: %w", err)
+		}
+	}
+
+	return nil
 }
 
 type GuildBanCreate struct {
