@@ -41,8 +41,9 @@ POST `channels/{channel_id}/messages/bulk_delete`
 GET `guilds/{guild_id}`
 - `roles`, `emojis` and `stickers` are missing
 
-POST `guilds/{guild_id}/members/{user_id}`
+PATCH `guilds/{guild_id}/members/{user_id}`
 - `nick` and `communication_disabled_until` cannot be empty strings to reset - they must be null.
+- The `roles` must all be valid otherwise `MISSING_PERMISSIONS` will be returned - unlike Discord which just filters out invalid IDs.
 
 POST `guilds/{guild_id}/bans/{user_id}`
 - The audit log reason (`X-Audit-Log-Reason` header) is separate from the actual reason stored in the entry (`reason` property).

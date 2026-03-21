@@ -3,12 +3,14 @@ package apiroutes
 import (
 	"net/http"
 	"net/url"
+	"slices"
 
 	"github.com/TheKodeToad/fline/internal/api"
 	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/TheKodeToad/fline/internal/convert"
 	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/TheKodeToad/fline/internal/fluxer"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -71,13 +73,30 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
-	router.Method("PATCH", "/{guild_id}/members/{user_id}", api.ProxyHandler[discord.GuildMemberUpdate, fluxer.GuildMember]{
+	type memberUpdate struct {
+		discord.GuildMemberUpdate
+		guildID string
+	}
+
+	router.Method("PATCH", "/{guild_id}/members/{user_id}", api.ProxyHandler[memberUpdate, fluxer.GuildMember]{
 		Conf:          conf,
 		Client:        client,
 		Path:          "/guilds/{guild_id}/members/{user_id}",
-		DecodeRequest: api.DecodeOptionalRequestJSON[discord.GuildMemberUpdate],
-		MapRequest: func(update discord.GuildMemberUpdate) (any, error) {
-			return convert.GuildMemberUpdateToFluxer(update), nil
+		DecodeRequest: func(req *http.Request) (memberUpdate, error) {
+			update, err := api.DecodeOptionalRequestJSON[discord.GuildMemberUpdate](req)
+			if err != nil {
+				return memberUpdate{}, err
+			}
+
+			return memberUpdate{update, req.PathValue("guild_id")}, nil
+		},
+		MapRequest: func(inUpdate memberUpdate) (any, error) {
+			outUpdate := convert.GuildMemberUpdateToFluxer(inUpdate.GuildMemberUpdate)
+			outUpdate.Roles = slices.DeleteFunc(outUpdate.Roles, func(id snowflake.ID) bool {
+				return inUpdate.guildID == id.String()
+			})
+
+			return outUpdate, nil
 		},
 		MapResponse: func(member fluxer.GuildMember) (any, error) {
 			return convert.GuildMemberToDiscord(member), nil
@@ -85,18 +104,18 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 	})
 
 	router.Method("DELETE", "/{guild_id}/members/{user_id}", api.ProxyHandler[any, api.EmptyResponse]{
-		Conf:           conf,
-		Client:         client,
-		Path:           "/guilds/{guild_id}/members/{user_id}",
+		Conf:   conf,
+		Client: client,
+		Path:   "/guilds/{guild_id}/members/{user_id}",
 		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
 			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
 		},
 	})
 
 	memberRole := api.ProxyHandler[any, api.EmptyResponse]{
-		Conf:           conf,
-		Client:         client,
-		Path:           "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
+		Conf:   conf,
+		Client: client,
+		Path:   "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
 		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
 			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
 		},
