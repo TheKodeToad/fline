@@ -34,6 +34,32 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
+	router.Method("GET", "/{channel_id}/webhooks", api.ProxyHandler[any, []fluxer.Webhook]{
+		Conf:   conf,
+		Client: client,
+		Path:   "/channels/{channel_id}/webhooks",
+		MapResponse: func(inWebhooks []fluxer.Webhook) (any, error) {
+			outWebhooks := make([]discord.Webhook, 0, len(inWebhooks))
+			for _, webhook := range inWebhooks {
+				outWebhooks = append(outWebhooks, convert.WebhookToDiscord(webhook))
+			}
+
+			return outWebhooks, nil
+		},
+	})
+
+	router.Method("POST", "/{channel_id}/webhooks", api.ProxyHandler[discord.WebhookCreate, fluxer.Webhook]{
+		Conf:   conf,
+		Client: client,
+		Path:   "/channels/{channel_id}/webhooks",
+		MapRequest: func(create discord.WebhookCreate) (any, error) {
+			return create, nil
+		},
+		MapResponse: func(webhook fluxer.Webhook) (any, error) {
+			return convert.WebhookToDiscord(webhook), nil
+		},
+	})
+
 	router.Mount("/{channel_id}/messages", messagesRouter(conf, client))
 
 	router.Method("POST", "/{channel_id}/typing", api.ProxyHandler[any, api.EmptyResponse]{

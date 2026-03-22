@@ -23,6 +23,7 @@ func Router(conf *config.Config) chi.Router {
 		router.Mount("/guilds", guildsRouter(conf, client))
 		router.Mount("/oauth2", oauthRouter(conf, client))
 		router.Mount("/users", usersRouter(conf, client))
+		router.Mount("/webhooks", webhooksRouter(conf, client))
 	})
 
 	nf := api.Handler(func(logger *slog.Logger, w http.ResponseWriter, r *http.Request) (resp any, err error) {
