@@ -377,8 +377,8 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 
 		outEvent := convert.GuildRoleEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
-	case "MESSAGE_CREATE":
-		var inEvent fluxer.MessageCreateEvent
+	case "MESSAGE_CREATE", "MESSAGE_UPDATE":
+		var inEvent fluxer.MessageEvent
 
 		err := json.Unmarshal(payload, &inEvent)
 		if err != nil {

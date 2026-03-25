@@ -156,7 +156,7 @@ func GuildRoleEventToDiscord(event fluxer.GuildRoleEvent) discord.GuildRoleEvent
 	}
 }
 
-func MessageCreateEventToDiscord(event fluxer.MessageCreateEvent) discord.MessageCreateEvent {
+func MessageCreateEventToDiscord(event fluxer.MessageEvent) discord.MessageCreateEvent {
 	var member *discord.GuildMember
 	if event.Member != nil {
 		member = misc.New(GuildMemberToDiscord(*event.Member))
