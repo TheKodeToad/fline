@@ -26,28 +26,30 @@ func ApplicationFlagsToDiscord() discord.ApplicationFlags {
 }
 
 func ApplicationToDiscord(app fluxer.Application) discord.Application {
-	result := discord.Application{
-		ID:                  app.ID,
-		Name:                app.Name,
-		Icon:                app.Icon,
-		BotPublic:           app.BotPublic,
-		BotRequireCodeGrant: app.BotRequireCodeGrant,
-		Flags:               ApplicationFlagsToDiscord(),
-		Owner: &discord.User{
-			ID:            1,
-			Username:      "DeletedUser",
-			Discriminator: "0000",
-			System:        misc.New(true),
-		},
-	}
-
+	var bot *discord.User
+	var description string
 	if app.Bot != nil {
-		result.Bot = misc.New(BotToDiscord(*app.Bot))
+		bot = misc.New(BotToDiscord(*app.Bot))
 
 		if app.Bot.Bio != nil {
-			result.Description = *app.Bot.Bio
+			description = *app.Bot.Bio
 		}
 	}
 
-	return result
+	return discord.Application{
+		ID:                  app.ID,
+		Name:                app.Name,
+		Icon:                app.Icon,
+		Description:         description,
+		BotPublic:           app.BotPublic,
+		BotRequireCodeGrant: app.BotRequireCodeGrant,
+		Bot:                 bot,
+		Flags:               ApplicationFlagsToDiscord(),
+		Owner: &discord.User{
+			ID:            fluxer.DeletedUserID,
+			Username:      fluxer.DeletedUserUsername,
+			Discriminator: fluxer.DeletedUserDiscrim,
+			System:        misc.New(true),
+		},
+	}
 }

@@ -45,6 +45,12 @@ func TestApplicationToDiscord(t *testing.T) {
 			Banner:        misc.New("botbanner"),
 			Flags:         misc.New(discord.UserFlags(0)),
 		},
+		Owner: &discord.User{
+			ID:            fluxer.DeletedUserID,
+			Username:      fluxer.DeletedUserUsername,
+			Discriminator: fluxer.DeletedUserDiscrim,
+			System:        misc.New(true),
+		},
 		Flags: discord.ApplicationFlagGatewayPresence |
 			discord.ApplicationFlagGatewayGuildMembers |
 			discord.ApplicationFlagGatewayMessageContent,
