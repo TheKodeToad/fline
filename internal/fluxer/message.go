@@ -1,7 +1,12 @@
 package fluxer
 
 import (
+	"encoding/json"
+	"fmt"
+	"mime/multipart"
+
 	"github.com/TheKodeToad/fline/internal/discord"
+	"github.com/TheKodeToad/fline/internal/multipartx"
 	"github.com/disgoorg/snowflake/v2"
 )
 
@@ -43,10 +48,33 @@ type MessageCreate struct {
 	AllowedMentions  *discord.AllowedMentions  `json:"allowed_mentions,omitempty"`
 	MessageReference *discord.MessageReference `json:"message_reference,omitempty"`
 	StickerIDs       []snowflake.ID            `json:"sticker_ids,omitzero"`
-	Files            []discord.MessageFile     `json:"-"`
+	Files            []multipartx.InMemoryFile `json:"-"`
 	Attachments      []discord.Attachment      `json:"attachments,omitzero"`
 	Flags            int                       `json:"flags"`
 	EnforceNonce     *bool                     `json:"enforce_nonce,omitempty"`
+}
+
+func (mc MessageCreate) EncodeForm(form *multipart.Writer) error {
+	payloadJSON, err := json.Marshal(mc)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload_json: %w", err)
+	}
+
+	form.WriteField("payload_json", string(payloadJSON))
+
+	for _, file := range mc.Files {
+		writer, err := form.CreateFormFile(file.FieldName, file.FileName)
+		if err != nil {
+			return fmt.Errorf("failed to add form file: %w", err)
+		}
+
+		_, err = writer.Write(file.Data)
+		if err != nil {
+			return fmt.Errorf("failed to write message file to form: %w", err)
+		}
+	}
+
+	return nil
 }
 
 type MessageBulkDelete struct {

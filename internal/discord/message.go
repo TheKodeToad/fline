@@ -1,6 +1,15 @@
 package discord
 
-import "github.com/disgoorg/snowflake/v2"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+
+	"github.com/TheKodeToad/fline/internal/misc"
+	"github.com/TheKodeToad/fline/internal/multipartx"
+	"github.com/disgoorg/snowflake/v2"
+)
 
 type ChannelMention struct {
 	ID      snowflake.ID `json:"id"`
@@ -136,24 +145,81 @@ type AllowedMentions struct {
 	RepliedUser *bool          `json:"replied_user,omitempty"`
 }
 
-type MessageFile struct {
-	FieldName string
-	Filename  string
-	Content   []byte
+type MessageCreate struct {
+	Content          *string                   `json:"content,omitempty"`
+	Nonce            *Nonce                    `json:"nonce,omitempty"`
+	TTS              *bool                     `json:"tts,omitempty"`
+	Embeds           []Embed                   `json:"embeds,omitzero"`
+	AllowedMentions  *AllowedMentions          `json:"allowed_mentions,omitempty"`
+	MessageReference *MessageReference         `json:"message_reference,omitempty"`
+	StickerIDs       []snowflake.ID            `json:"sticker_ids,omitzero"`
+	Files            []multipartx.InMemoryFile `json:"-"`
+	Attachments      []Attachment              `json:"attachments,omitzero"`
+	Flags            int                       `json:"flags,omitempty"`
+	EnforceNonce     *bool                     `json:"enforce_nonce,omitempty"`
 }
 
-type MessageCreate struct {
-	Content          *string           `json:"content,omitempty"`
-	Nonce            *Nonce            `json:"nonce,omitempty"`
-	TTS              *bool             `json:"tts,omitempty"`
-	Embeds           []Embed           `json:"embeds,omitzero"`
-	AllowedMentions  *AllowedMentions  `json:"allowed_mentions,omitempty"`
-	MessageReference *MessageReference `json:"message_reference,omitempty"`
-	StickerIDs       []snowflake.ID    `json:"sticker_ids,omitzero"`
-	Files            []MessageFile     `json:"-"`
-	Attachments      []Attachment      `json:"attachments,omitzero"`
-	Flags            int               `json:"flags,omitempty"`
-	EnforceNonce     *bool             `json:"enforce_nonce,omitempty"`
+func (mc *MessageCreate) UnmarshalForm(form multipartx.InMemoryForm) error {
+	if payloadJSON := form.Value["payload_json"]; len(payloadJSON) != 0 {
+		err := json.Unmarshal([]byte(payloadJSON[0]), mc)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal payload_json: %w", err)
+		}
+	} else {
+		if content := form.Value["content"]; len(content) != 0 {
+			mc.Content = misc.New(content[0])
+		}
+
+		if nonce := form.Value["nonce"]; len(nonce) != 0 {
+			mc.Nonce = misc.New(NonceFromString(nonce[0]))
+		}
+
+		if tts := form.Value["tts"]; len(tts) != 0 {
+			switch tts[0] {
+			case "false":
+				mc.TTS = misc.New(false)
+			case "true":
+				mc.TTS = misc.New(true)
+			default:
+				return errors.New("expected true/false for tts form value")
+			}
+		}
+
+		if stickerIDs := form.Value["sticker_ids"]; len(stickerIDs) != 0 {
+			mc.StickerIDs = make([]snowflake.ID, 0, len(stickerIDs))
+			for _, stickerID := range stickerIDs {
+				id, err := strconv.ParseUint(stickerID, 10, 64)
+				if err != nil {
+					return fmt.Errorf("failed to parse sticker_ids form value: %w", err)
+				}
+
+				mc.StickerIDs = append(mc.StickerIDs, snowflake.ID(id))
+			}
+		}
+
+		if flags := form.Value["flags"]; len(flags) != 0 {
+			flagsInt, err := strconv.Atoi(flags[0])
+			if err != nil {
+				return fmt.Errorf("failed to parse flags form value: %w", err)
+			}
+
+			mc.Flags = flagsInt
+		}
+
+		if enforceNonce := form.Value["enforce_nonce"]; len(enforceNonce) != 0 {
+			switch enforceNonce[0] {
+			case "false":
+				mc.EnforceNonce = misc.New(false)
+			case "true":
+				mc.EnforceNonce = misc.New(true)
+			default:
+				return errors.New("expected true/false for enforce_nonce form value")
+			}
+		}
+	}
+
+	mc.Files = form.Files
+	return nil
 }
 
 type MessageBulkDelete struct {

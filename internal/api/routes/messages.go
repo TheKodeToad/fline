@@ -1,6 +1,13 @@
 package apiroutes
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/TheKodeToad/fline/internal/api"
@@ -8,6 +15,7 @@ import (
 	"github.com/TheKodeToad/fline/internal/convert"
 	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/TheKodeToad/fline/internal/fluxer"
+	"github.com/TheKodeToad/fline/internal/multipartx"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -38,7 +46,98 @@ func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
-	router.Method("POST", "/", messageCreateHandler(conf, client, "/channels/{channel_id}/messages"))
+	router.Method("POST", "/", api.ProxyHandler[discord.MessageCreate, fluxer.Message]{
+		Conf:   conf,
+		Client: client,
+		Path:   "/channels/{channel_id}/messages",
+		DecodeRequest: func(req *http.Request) (discord.MessageCreate, error) {
+			contentType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
+			if err != nil {
+				return discord.MessageCreate{}, api.ErrInvalidFormBody
+			}
+
+			switch contentType {
+			case "application/json":
+				var create discord.MessageCreate
+
+				err := json.NewDecoder(req.Body).Decode(&create)
+				if err != nil {
+					return discord.MessageCreate{}, err
+				}
+
+				return create, nil
+			case "multipart/form-data":
+				var create discord.MessageCreate
+
+				reader, err := req.MultipartReader()
+				if err != nil {
+					return discord.MessageCreate{}, fmt.Errorf("failed to create multipart reader: %w", err)
+				}
+
+				form, err := multipartx.ReadInMemory(reader, conf.MaxUploadFiles, conf.MaxUploadFileSize)
+				if errors.Is(err, multipartx.ErrTooManyFiles) ||
+					errors.Is(err, multipartx.ErrFileTooLarge) {
+					return discord.MessageCreate{}, api.ErrInvalidFormBody
+				} else if err != nil {
+					return discord.MessageCreate{}, fmt.Errorf("failed to read multipart form: %w", err)
+				}
+
+				err = create.UnmarshalForm(form)
+				if err != nil {
+					return discord.MessageCreate{}, api.ErrInvalidFormBody
+				}
+
+				return create, nil
+			default:
+				// TODO: application/x-www-form-urlencoded is also supported... for some reason
+				return discord.MessageCreate{}, api.ErrInvalidFormBody
+			}
+		},
+		MapRequest: func(inCreate discord.MessageCreate) (any, error) {
+			outCreate, ok := convert.MessageCreateToFluxer(inCreate)
+			if !ok {
+				return nil, api.ErrInvalidFormBody
+			}
+
+			return outCreate, nil
+		},
+		EncodeRequest: func(body any, req *http.Request) error {
+			create := body.(fluxer.MessageCreate)
+			if len(create.Files) != 0 {
+				var data bytes.Buffer
+				writer := multipart.NewWriter(&data)
+
+				err := create.EncodeForm(writer)
+				if err != nil {
+					return fmt.Errorf("failed to encode multipart form: %w", err)
+				}
+
+				err = writer.Close()
+				if err != nil {
+					return fmt.Errorf("failed to finish multipart form: %w", err)
+				}
+
+				contentType := mime.FormatMediaType("multipart/form-data", map[string]string{
+					"boundary": writer.Boundary(),
+				})
+				req.Header.Set("Content-Type", contentType)
+				req.Body = io.NopCloser(bytes.NewReader(data.Bytes()))
+				return nil
+			} else {
+				data, err := json.Marshal(create)
+				if err != nil {
+					return err
+				}
+
+				req.Header.Set("Content-Type", "application/json")
+				req.Body = io.NopCloser(bytes.NewReader(data))
+				return nil
+			}
+		},
+		MapResponse: func(message fluxer.Message) (any, error) {
+			return convert.MessageToDiscord(message), nil
+		},
+	})
 
 	router.Method("GET", "/{message_id}", api.ProxyHandler[any, fluxer.Message]{
 		Conf:   conf,

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -13,8 +14,12 @@ import (
 type Config struct {
 	FluxerAPIURL     *url.URL
 	FluxerGatewayURL *url.URL
-	ListenAddr       string
-	LogLevel         slog.Level
+
+	MaxUploadFiles    int
+	MaxUploadFileSize int64
+
+	ListenAddr string
+	LogLevel   slog.Level
 }
 
 func mustParseURL(rawURL string) *url.URL {
@@ -29,8 +34,12 @@ func mustParseURL(rawURL string) *url.URL {
 var defaults = Config{
 	FluxerAPIURL:     mustParseURL("https://api.fluxer.app/"),
 	FluxerGatewayURL: mustParseURL("wss://gateway.fluxer.app"),
-	ListenAddr:       ":8080",
-	LogLevel:         slog.LevelInfo,
+
+	MaxUploadFiles:    10,
+	MaxUploadFileSize: 50 * 1024 * 1024, // 50 MiB
+
+	ListenAddr: ":8080",
+	LogLevel:   slog.LevelInfo,
 }
 
 func Load() (Config, error) {
@@ -65,6 +74,24 @@ func Load() (Config, error) {
 		}
 
 		result.FluxerGatewayURL = parsed
+	}
+
+	if v := lookup("FLINE_MAX_UPLOAD_FILES"); v != "" {
+		parsed, err := strconv.Atoi(v)
+		if err != nil {
+			return Config{}, fmt.Errorf("failed to parse FLINE_MAX_UPLOAD_FILES: %w", err)
+		}
+
+		result.MaxUploadFiles = parsed
+	}
+
+	if v := lookup("FLINE_MAX_UPLOAD_FILE_SIZE"); v != "" {
+		parsed, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return Config{}, fmt.Errorf("failed to parse FLINE_MAX_UPLOAD_FILE_SIZE: %w", err)
+		}
+
+		result.MaxUploadFileSize = parsed
 	}
 
 	if v := lookup("FLINE_LISTEN_ADDR"); v != "" {

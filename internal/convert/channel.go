@@ -3,7 +3,6 @@ package convert
 import (
 	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/TheKodeToad/fline/internal/fluxer"
-	"github.com/TheKodeToad/fline/internal/misc"
 )
 
 func commonChannelTypeSubset(kind discord.ChannelType) bool {
@@ -47,17 +46,4 @@ func ChannelToDiscord(channel fluxer.Channel) (discord.Channel, bool) {
 		RateLimitPerUser:     channel.RateLimitPerUser,
 		Recipients:           recipients,
 	}, true
-}
-
-func WebhookToDiscord(webhook fluxer.Webhook) discord.Webhook {
-	return discord.Webhook{
-		ID:        webhook.ID,
-		Type:      discord.WebhookTypeIncoming,
-		GuildID:   &webhook.ChannelID,
-		ChannelID: &webhook.ChannelID,
-		User:      misc.New(UserPartialToDiscord(webhook.User)),
-		Name:      &webhook.Name,
-		Avatar:    webhook.Avatar,
-		Token:     &webhook.Token,
-	}
 }

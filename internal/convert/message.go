@@ -1,9 +1,14 @@
 package convert
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/TheKodeToad/fline/internal/fluxer"
 	"github.com/TheKodeToad/fline/internal/misc"
+	"github.com/TheKodeToad/fline/internal/multipartx"
 	"github.com/disgoorg/snowflake/v2"
 )
 
@@ -108,32 +113,112 @@ func MessageToDiscord(message fluxer.Message) discord.Message {
 	}
 }
 
-func MessageCreateToFluxer(create discord.MessageCreate) fluxer.MessageCreate {
+func UploadsToFluxer(inAttachments []discord.Attachment, inFiles []multipartx.InMemoryFile) ([]discord.Attachment, []multipartx.InMemoryFile, bool) {
+	parseFileID := func(name string) (snowflake.ID, bool) {
+		const prefix = "files["
+		const suffix = "]"
+
+		if !strings.HasPrefix(name, prefix) || !strings.HasSuffix(name, suffix) {
+			return 0, false
+		}
+
+		idStr := name[len(prefix) : len(name)-len(suffix)]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		return snowflake.ID(id), err == nil
+	}
+
+	outAttachments := make([]discord.Attachment, 0, len(inAttachments))
+	outFiles := make([]multipartx.InMemoryFile, 0, len(inFiles))
+
+	unprocessedAttachments := map[snowflake.ID]discord.Attachment{}
+	for _, attachment := range inAttachments {
+		if _, ok := unprocessedAttachments[attachment.ID]; ok {
+			// duplicate attachment ID
+			return nil, nil, false
+		}
+
+		unprocessedAttachments[attachment.ID] = attachment
+	}
+
+	for newID, file := range inFiles {
+		// NOTE: the field name of every file on Fluxer must match files[ID]
+		// Discord, on the other hand allows a non-conforming field name
+		// remapping every field name to a new set of sequential IDs is an easy way to conform to Fluxer's requirements without collisions
+		// we just must make sure to remap the old IDs to the new IDs in the attachments array
+
+		newAttachment := discord.Attachment{
+			ID:       snowflake.ID(newID),
+			Filename: &file.FileName,
+		}
+
+		if originalID, ok := parseFileID(file.FieldName); ok {
+			if attachment, ok := unprocessedAttachments[originalID]; ok {
+				delete(unprocessedAttachments, originalID)
+
+				newAttachment = attachment
+
+				newAttachment.ID = snowflake.ID(newID)
+				if newAttachment.Filename == nil {
+					newAttachment.Filename = &file.FileName
+				}
+
+			}
+		}
+
+		outAttachments = append(outAttachments, newAttachment)
+
+		outFiles = append(outFiles, multipartx.InMemoryFile{
+			FieldName:     fmt.Sprintf("files[%d]", newID),
+			FileName: file.FileName,
+			Data:     file.Data,
+		})
+	}
+
+	if len(unprocessedAttachments) != 0 {
+		return nil, nil, false
+	}
+
+	return outAttachments, outFiles, true
+
+}
+
+func AllowedMentionsToFluxer(mentions discord.AllowedMentions) discord.AllowedMentions {
+	if mentions.Parse == nil {
+		mentions.Parse = []string{}
+	}
+	if mentions.Roles == nil {
+		mentions.Roles = []snowflake.ID{}
+	}
+	if mentions.Users == nil {
+		mentions.Users = []snowflake.ID{}
+	}
+	if mentions.RepliedUser == nil {
+		mentions.RepliedUser = misc.New(true)
+	}
+
+	return mentions
+}
+
+func MessageCreateToFluxer(create discord.MessageCreate) (fluxer.MessageCreate, bool) {
 	var nonce *string
 	if create.Nonce != nil {
 		nonce = misc.New(NonceToFluxer(*create.Nonce))
 	}
 
-	allowedMentions := create.AllowedMentions
-	if allowedMentions != nil {
-		// NOTE: Discord defaults differ from Fluxer; apply Discord defaults here
-		if allowedMentions.Parse == nil {
-			allowedMentions.Parse = []string{}
-		}
-		if allowedMentions.Roles == nil {
-			allowedMentions.Roles = []snowflake.ID{}
-		}
-		if allowedMentions.Users == nil {
-			allowedMentions.Users = []snowflake.ID{}
-		}
-		if allowedMentions.RepliedUser == nil {
-			allowedMentions.RepliedUser = misc.New(true)
-		}
+	var allowedMentions *discord.AllowedMentions
+	if create.AllowedMentions != nil {
+		allowedMentions = misc.New(AllowedMentionsToFluxer(*create.AllowedMentions))
 	}
 
 	embeds := make([]discord.Embed, 0, len(create.Embeds))
 	for _, embed := range create.Embeds {
 		embeds = append(embeds, EmbedToFluxer(embed))
+	}
+
+	attachments, files, ok := UploadsToFluxer(create.Attachments, create.Files)
+	if !ok {
+		return fluxer.MessageCreate{}, false
 	}
 
 	return fluxer.MessageCreate{
@@ -144,11 +229,11 @@ func MessageCreateToFluxer(create discord.MessageCreate) fluxer.MessageCreate {
 		AllowedMentions:  allowedMentions,
 		MessageReference: create.MessageReference,
 		StickerIDs:       create.StickerIDs,
-		Files:            create.Files,
-		Attachments:      create.Attachments,
+		Files:            files,
+		Attachments:      attachments,
 		Flags:            create.Flags,
 		EnforceNonce:     create.EnforceNonce,
-	}
+	}, true
 }
 
 func MessageBulkDeleteToFluxer(delete discord.MessageBulkDelete) fluxer.MessageBulkDelete {

@@ -285,6 +285,12 @@ func DecodeOptionalRequestJSON[T any](req *http.Request) (T, error) {
 	return decodeRequestJSON[T](req, true)
 }
 
+type FormFile struct {
+	Name string
+	Filename  string
+	Content   []byte
+}
+
 func DecodeResponseJSON[T any](resp *http.Response) (T, error) {
 	var result T
 

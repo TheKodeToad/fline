@@ -40,25 +40,3 @@ type Channel struct {
 	LastPinTimestamp     *string               `json:"last_pin_timestamp,omitempty"`
 	RTCRegion            *string               `json:"rtc_region"`
 }
-
-type WebhookType uint
-
-const (
-	WebhookTypeIncoming WebhookType = 1
-)
-
-type WebhookCreate struct {
-	Name   string  `json:"name"`
-	Avatar *string `json:"avatar"`
-}
-
-type Webhook struct {
-	ID        snowflake.ID  `json:"id"`
-	Type      WebhookType   `json:"type"`
-	GuildID   *snowflake.ID `json:"guild_id"`
-	ChannelID *snowflake.ID `json:"channel_id"`
-	User      *User         `json:"user,omitempty"`
-	Name      *string       `json:"name"`
-	Avatar    *string       `json:"avatar"`
-	Token     *string       `json:"token,omitempty"`
-}
