@@ -14,7 +14,7 @@ import (
 // inspired by approach in https://dusted.codes/creating-a-pretty-console-logger-using-gos-slog-package
 // FIXME: maybe there is something less innefficient
 
-// LegibleHandler is a [slog.LegibleHandler] which outputs Records in a nicely formatted manner.
+// LegibleHandler is a [slog.Handler] which outputs Records in a nicely formatted manner.
 // It is designed for development and may be innefficient.
 type LegibleHandler struct {
 	base      slog.Handler
