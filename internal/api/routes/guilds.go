@@ -64,6 +64,15 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
+	router.Method("DELETE", "/{guild_id}/bans/{user_id}", api.ProxyHandler[banCreate, api.EmptyResponse]{
+		Client: client,
+		Conf:   conf,
+		Path:   "/guilds/{guild_id}/bans/{user_id}",
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
+		},
+	})
+
 	router.Method("GET", "/{guild_id}/members/{user_id}", api.ProxyHandler[any, fluxer.GuildMember]{
 		Conf:   conf,
 		Client: client,
