@@ -407,6 +407,8 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 
 		outEvent := convert.MessageReactionRemoveEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
+	case "MESSAGE_REACTION_REMOVE_ALL":
+		return payload, nil
 	default:
 		slog.Warn("received unknown event from fluxer: " + name)
 		return json.RawMessage{}, errNonConvertiblePacket
