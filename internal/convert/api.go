@@ -27,6 +27,8 @@ func APIErrorCodeToDiscord(code fluxer.APIErrorCode) discord.APIErrorCode {
 		return discord.APIErrorUnknownWebhook
 	case fluxer.APIErrorCannotSendEmptyMessage:
 		return discord.APIErrorCannotSendEmptyMessage
+	case fluxer.APIErrorMissingPermissions:
+		return discord.APIErrorLackingPermissions
 	// TODO: ...draw the rest of the owl
 	default:
 		return discord.APIErrorGeneral
