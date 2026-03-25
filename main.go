@@ -15,7 +15,7 @@ import (
 	apiroutes "github.com/TheKodeToad/fline/internal/api/routes"
 	"github.com/TheKodeToad/fline/internal/config"
 	"github.com/TheKodeToad/fline/internal/gateway"
-	"github.com/TheKodeToad/fline/internal/legiblelog"
+	"github.com/TheKodeToad/fline/internal/slogx"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -30,7 +30,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger := slog.New(legiblelog.NewHandler(os.Stderr, &slog.HandlerOptions{
+	logger := slog.New(slogx.NewLegibleHandler(os.Stderr, &slog.HandlerOptions{
 		Level: conf.LogLevel,
 	}))
 	slog.SetDefault(logger)

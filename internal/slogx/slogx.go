@@ -1,4 +1,4 @@
-package legiblelog
+package slogx
 
 import (
 	"bytes"
@@ -14,9 +14,9 @@ import (
 // inspired by approach in https://dusted.codes/creating-a-pretty-console-logger-using-gos-slog-package
 // FIXME: maybe there is something less innefficient
 
-// Handler is a [slog.Handler] which outputs Records in a nicely formatted manner.
+// LegibleHandler is a [slog.LegibleHandler] which outputs Records in a nicely formatted manner.
 // It is designed for development and may be innefficient.
-type Handler struct {
+type LegibleHandler struct {
 	base      slog.Handler
 	output    io.Writer
 	bytes     *bytes.Buffer
@@ -24,12 +24,12 @@ type Handler struct {
 }
 
 // should implement slog.Handler
-var _ slog.Handler = new(Handler)
+var _ slog.Handler = new(LegibleHandler)
 
-func NewHandler(w io.Writer, opts *slog.HandlerOptions) *Handler {
+func NewLegibleHandler(w io.Writer, opts *slog.HandlerOptions) *LegibleHandler {
 	bytes := new(bytes.Buffer)
 
-	return &Handler{
+	return &LegibleHandler{
 		base: slog.NewJSONHandler(bytes, opts),
 		output: w,
 		bytes: bytes,
@@ -37,7 +37,7 @@ func NewHandler(w io.Writer, opts *slog.HandlerOptions) *Handler {
 	}
 }
 
-func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
+func (h *LegibleHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return h.base.Enabled(ctx, level)
 }
 
@@ -62,7 +62,7 @@ func formatObj(output *strings.Builder, obj map[string]any, prefix string) {
 	}
 }
 
-func (h *Handler) Handle(ctx context.Context, record slog.Record) error {
+func (h *LegibleHandler) Handle(ctx context.Context, record slog.Record) error {
 	h.bytesLock.Lock()
 	defer h.bytesLock.Unlock()
 	defer h.bytes.Reset()
@@ -92,12 +92,12 @@ func (h *Handler) Handle(ctx context.Context, record slog.Record) error {
 	return nil
 }
 
-func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
+func (h *LegibleHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	var clone = *h
 	clone.base = h.base.WithAttrs(attrs)
 	return &clone
 }
 
-func (h *Handler) WithGroup(name string) slog.Handler {
+func (h *LegibleHandler) WithGroup(name string) slog.Handler {
 	return h.base.WithGroup(name)
 }
