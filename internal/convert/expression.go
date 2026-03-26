@@ -37,5 +37,6 @@ func StickerToDiscord(sticker fluxer.Sticker) discord.Sticker {
 		Tags: strings.Join(sticker.Tags, ","),
 		Type: discord.StickerTypeGuild,
 		FormatType: formatType,
+		Available: misc.New(true),
 	}
 }

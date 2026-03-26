@@ -91,8 +91,11 @@ func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreat
 	}
 
 	guild.Stickers = make([]discord.Sticker, 0, len(event.Stickers))
-	for _, sticker := range event.Stickers {
-		guild.Stickers = append(guild.Stickers, StickerToDiscord(sticker))
+	for _, inSticker := range event.Stickers {
+		outSticker := StickerToDiscord(inSticker)
+		outSticker.GuildID = &guild.ID
+
+		guild.Stickers = append(guild.Stickers, outSticker)
 	}
 
 	return discord.GuildCreateEvent{
