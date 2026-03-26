@@ -337,6 +337,16 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 
 		outEvent := convert.GuildCreateEventToDiscord(inEvent)
 		return json.Marshal(outEvent)
+	case "GUILD_UPDATE":
+		var inGuild fluxer.Guild
+
+		err := json.Unmarshal(payload, &inGuild)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outGuild := convert.GuildToDiscord(inGuild)
+		return json.Marshal(outGuild)
 	case "GUILD_MEMBER_ADD":
 		var inEvent fluxer.GuildMemberAddEvent
 
