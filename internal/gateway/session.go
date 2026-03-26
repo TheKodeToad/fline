@@ -409,6 +409,16 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		return json.Marshal(outEvent)
 	case "MESSAGE_DELETE", "MESSAGE_REACTION_REMOVE_ALL":
 		return payload, nil
+	case "VOICE_STATE_UPDATE":
+		var inState fluxer.VoiceState
+
+		err := json.Unmarshal(payload, &inState)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outState := convert.VoiceStateToDiscord(inState)
+		return json.Marshal(outState)
 	default:
 		slog.Warn("received unknown event from fluxer: " + name)
 		return json.RawMessage{}, errNonConvertiblePacket

@@ -55,6 +55,14 @@ func ReadyEventToDiscord(data fluxer.ReadyEvent) discord.ReadyEvent {
 }
 
 func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreateEvent {
+	voiceStates := make([]discord.VoiceState, 0, len(event.VoiceStates))
+	for _, inState := range event.VoiceStates {
+		outState := VoiceStateToDiscord(inState)
+		outState.GuildID = nil
+
+		voiceStates = append(voiceStates, outState)
+	}
+
 	members := make([]discord.GuildMember, 0, len(event.Members))
 	for _, member := range event.Members {
 		members = append(members, GuildMemberToDiscord(member))
@@ -93,6 +101,7 @@ func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreat
 		Large:       event.Large,
 		Unavailable: event.Unavailable,
 		MemberCount: event.MemberCount,
+		VoiceStates: voiceStates,
 		Members:     members,
 		Channels:    channels,
 	}

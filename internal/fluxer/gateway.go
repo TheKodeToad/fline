@@ -34,6 +34,7 @@ type GuildCreateEvent struct {
 	Large       bool          `json:"large"`
 	Unavailable *bool         `json:"unavailable,omitempty"`
 	MemberCount int           `json:"member_count"`
+	VoiceStates []VoiceState  `json:"voice_states"`
 	Members     []GuildMember `json:"members"`
 	Channels    []Channel     `json:"channels"`
 	// NOTE: these fields are included inside a Discord guild, but Fluxer only sends them in the gateway event

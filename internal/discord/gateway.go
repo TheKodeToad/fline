@@ -139,6 +139,7 @@ type GuildCreateEvent struct {
 	Large       bool          `json:"large"`
 	Unavailable *bool         `json:"unavailable,omitempty"`
 	MemberCount int           `json:"member_count"`
+	VoiceStates []VoiceState  `json:"voice_states"`
 	Members     []GuildMember `json:"members"`
 	Channels    []Channel     `json:"channels"`
 }
