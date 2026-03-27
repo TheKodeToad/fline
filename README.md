@@ -10,6 +10,8 @@ Right now this project is heavily limited by Fluxer lacking interactions.
 
 ## Usage
 
+You will need to install [a toolchain for the Go programming language](https://go.dev/dl/).
+
 First run `go build` to build and then it can be run with `./fline`.
 
 Environment variables can be provided through the command line or `.env`; you can see which are available in [.env.example](./.env.example). Most of the defaults should already be good enough if you want to use the official instance of Fluxer, but you may want to change the port that is being listened on with `FLINE_LISTEN_ADDR=:1234` (it defaults to 8080).
