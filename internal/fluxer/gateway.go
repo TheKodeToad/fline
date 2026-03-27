@@ -71,6 +71,11 @@ type GuildMembersChunkEvent struct {
 	Nonce      *string        `json:"nonce,omitempty"`
 }
 
+type GuildEmojisUpdateEvent struct {
+	GuildID snowflake.ID `json:"guild_id"`
+	Emojis  []Emoji      `json:"emojis"`
+}
+
 type GuildStickersUpdateEvent struct {
 	GuildID  snowflake.ID `json:"guild_id"`
 	Stickers []Sticker    `json:"stickers"`
@@ -79,6 +84,11 @@ type GuildStickersUpdateEvent struct {
 type GuildRoleEvent struct {
 	GuildID snowflake.ID `json:"guild_id"`
 	Role    Role         `json:"role"`
+}
+
+type GuildRoleDeleteEvent struct {
+	GuildID snowflake.ID `json:"guild_id"`
+	RoleID  snowflake.ID `json:"role_id"`
 }
 
 type MessageEvent struct {

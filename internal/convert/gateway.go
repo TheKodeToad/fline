@@ -90,10 +90,12 @@ func GuildCreateEventToDiscord(event fluxer.GuildCreateEvent) discord.GuildCreat
 		guild.Emojis = append(guild.Emojis, EmojiToDiscord(emoji))
 	}
 
+	guildID := guild.ID
+
 	guild.Stickers = make([]discord.Sticker, 0, len(event.Stickers))
 	for _, inSticker := range event.Stickers {
 		outSticker := StickerToDiscord(inSticker)
-		outSticker.GuildID = &guild.ID
+		outSticker.GuildID = &guildID
 
 		guild.Stickers = append(guild.Stickers, outSticker)
 	}
@@ -149,10 +151,25 @@ func GuildMembersChunkEventToDiscord(event fluxer.GuildMembersChunkEvent) discor
 	}
 }
 
+func GuildEmojisUpdateEventToDiscord(event fluxer.GuildEmojisUpdateEvent) discord.GuildEmojisUpdateEvent {
+	emojis := make([]discord.Emoji, 0, len(event.Emojis))
+	for _, emoji := range event.Emojis {
+		emojis = append(emojis, EmojiToDiscord(emoji))
+	}
+
+	return discord.GuildEmojisUpdateEvent{
+		GuildID: event.GuildID,
+		Emojis:  emojis,
+	}
+}
+
 func GuildStickersUpdateEventToDiscord(event fluxer.GuildStickersUpdateEvent) discord.GuildStickersUpdateEvent {
 	stickers := make([]discord.Sticker, 0, len(event.Stickers))
-	for _, sticker := range event.Stickers {
-		stickers = append(stickers, StickerToDiscord(sticker))
+	for _, inSticker := range event.Stickers {
+		outSticker := StickerToDiscord(inSticker)
+		outSticker.GuildID = &event.GuildID
+
+		stickers = append(stickers, outSticker)
 	}
 
 	return discord.GuildStickersUpdateEvent{

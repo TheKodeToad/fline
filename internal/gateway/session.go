@@ -15,6 +15,7 @@ import (
 	"github.com/TheKodeToad/fline/internal/discord"
 	"github.com/TheKodeToad/fline/internal/fluxer"
 	"github.com/TheKodeToad/fline/internal/misc"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/gorilla/websocket"
 )
 
@@ -82,8 +83,20 @@ type sessionInfo struct {
 	apiVersion int
 }
 
+// guildCache tracks extra information in order to provide it in payloads when missing.
+type guildCache struct {
+	roles    map[snowflake.ID]discord.Role
+	emojis   []discord.Emoji
+	stickers []discord.Sticker
+}
+
+type sessionCache struct {
+	guilds map[snowflake.ID]*guildCache
+}
+
 type session struct {
 	info       sessionInfo
+	cache      sessionCache
 	clientConn *websocket.Conn
 	fluxerConn *websocket.Conn
 	client     wsChannels
@@ -156,6 +169,9 @@ func startSession(conf *config.Config, w http.ResponseWriter, r *http.Request) (
 			host:       r.Host,
 			apiVersion: apiVersion,
 		},
+		cache: sessionCache{
+			guilds: map[snowflake.ID]*guildCache{},
+		},
 		clientConn: clientConn,
 		fluxerConn: fluxerConn,
 		client:     setupWSChannels(clientConn),
@@ -196,8 +212,8 @@ func logPacket(msg string, packet discord.Packet) error {
 // errNonConvertiblePacket signals that the packet is not convertible and nothing should be sent to the destination.
 var errNonConvertiblePacket = errors.New("non-convertible packet")
 
-// packetToFluxer converts from a Discord packet to a Fluxer packet.
-func packetToFluxer(packet discord.Packet) (discord.Packet, error) {
+// translatePacketToFluxer converts from a Discord packet to a Fluxer packet.
+func translatePacketToFluxer(packet discord.Packet) (discord.Packet, error) {
 	switch packet.Opcode {
 	case discord.GatewayOpHeartbeat,
 		discord.GatewayOpRequestGuildMembers,
@@ -238,7 +254,7 @@ func packetToFluxer(packet discord.Packet) (discord.Packet, error) {
 	}
 }
 
-func (s *session) handleClientMsg(msg wsMessage) error {
+func handleClientMsg(msg wsMessage, sesh *session) error {
 	if msg.messageType != websocket.TextMessage {
 		return nil
 	}
@@ -246,7 +262,7 @@ func (s *session) handleClientMsg(msg wsMessage) error {
 	var inPacket discord.Packet
 	err := json.Unmarshal(msg.data, &inPacket)
 	if err != nil {
-		s.client.write <- wsMessage{
+		sesh.client.write <- wsMessage{
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(discord.GatewayClosedDecodeError, ""),
 		}
@@ -258,7 +274,7 @@ func (s *session) handleClientMsg(msg wsMessage) error {
 		slog.Warn("failed to log discord packet", slog.Any("err", err))
 	}
 
-	outPacket, err := packetToFluxer(inPacket)
+	outPacket, err := translatePacketToFluxer(inPacket)
 	if errors.Is(err, errNonConvertiblePacket) {
 		return nil
 	} else if err != nil {
@@ -270,14 +286,14 @@ func (s *session) handleClientMsg(msg wsMessage) error {
 		return fmt.Errorf("failed to marshal modified client packet: %w", err)
 	}
 
-	s.fluxer.write <- wsMessage{
+	sesh.fluxer.write <- wsMessage{
 		websocket.TextMessage,
 		newData,
 	}
 	return nil
 }
 
-func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (json.RawMessage, error) {
+func translateEventToDiscord(name string, payload json.RawMessage, info sessionInfo, cache *sessionCache) (json.RawMessage, error) {
 	switch name {
 	case "READY":
 		var inEvent fluxer.ReadyEvent
@@ -320,13 +336,31 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 
 		err := json.Unmarshal(payload, &inEvent)
 		if err != nil {
-			return json.RawMessage{}, nil
+			return json.RawMessage{}, err
 		}
-		
+
 		outEvent := convert.GuildStickersUpdateEventToDiscord(inEvent)
+
+		if guildEntry, ok := cache.guilds[outEvent.GuildID]; ok {
+			guildEntry.stickers = outEvent.Stickers
+		}
+
 		return json.Marshal(outEvent)
-	case "GUILD_EMOJI_UPDATE", "GUILD_DELETE", "GUILD_ROLE_DELETE":
-		return payload, nil
+	case "GUILD_EMOJIS_UPDATE":
+		var inEvent fluxer.GuildEmojisUpdateEvent
+
+		err := json.Unmarshal(payload, &inEvent)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		outEvent := convert.GuildEmojisUpdateEventToDiscord(inEvent)
+
+		if guildEntry, ok := cache.guilds[outEvent.GuildID]; ok {
+			guildEntry.emojis = outEvent.Emojis
+		}
+
+		return json.Marshal(outEvent)
 	case "GUILD_CREATE":
 		var inEvent fluxer.GuildCreateEvent
 
@@ -336,7 +370,30 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		}
 
 		outEvent := convert.GuildCreateEventToDiscord(inEvent)
+
+		roleMap := map[snowflake.ID]discord.Role{}
+		for _, role := range outEvent.Roles {
+			roleMap[role.ID] = role
+		}
+
+		cache.guilds[inEvent.Properties.ID] = &guildCache{
+			roles:    roleMap,
+			emojis:   outEvent.Emojis,
+			stickers: outEvent.Stickers,
+		}
+
 		return json.Marshal(outEvent)
+	case "GUILD_DELETE":
+		var guild discord.UnavailableGuild
+
+		err := json.Unmarshal(payload, &guild)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+		delete(cache.guilds, guild.ID)
+
+		return payload, nil
 	case "GUILD_UPDATE":
 		var inGuild fluxer.Guild
 
@@ -346,6 +403,18 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		}
 
 		outGuild := convert.GuildToDiscord(inGuild)
+		
+		if guildEntry, ok := cache.guilds[inGuild.ID]; ok {
+			outGuild.Roles = make([]discord.Role, 0, len(guildEntry.roles))
+			// FIXME: order not deterministic
+			for _, role := range guildEntry.roles {
+				outGuild.Roles = append(outGuild.Roles, role)
+			}
+
+			outGuild.Emojis = guildEntry.emojis
+			outGuild.Stickers = guildEntry.stickers
+		}
+
 		return json.Marshal(outGuild)
 	case "GUILD_MEMBER_ADD":
 		var inEvent fluxer.GuildMemberAddEvent
@@ -386,7 +455,26 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 		}
 
 		outEvent := convert.GuildRoleEventToDiscord(inEvent)
+
+		if guildEntry, ok := cache.guilds[outEvent.GuildID]; ok {
+			guildEntry.roles[outEvent.GuildID] = outEvent.Role
+		}
+
 		return json.Marshal(outEvent)
+	case "GUILD_ROLE_DELETE":
+		var del fluxer.GuildRoleDeleteEvent
+
+		err := json.Unmarshal(payload, &del)
+		if err != nil {
+			return json.RawMessage{}, err
+		}
+
+
+		if guildEntry, ok := cache.guilds[del.GuildID]; ok {
+			delete(guildEntry.roles, del.RoleID)
+		}
+
+		return payload, nil
 	case "MESSAGE_CREATE", "MESSAGE_UPDATE":
 		var inEvent fluxer.MessageEvent
 
@@ -435,7 +523,7 @@ func eventToDiscord(name string, payload json.RawMessage, info sessionInfo) (jso
 	}
 }
 
-func packetToDiscord(packet discord.Packet, info sessionInfo) (discord.Packet, error) {
+func translatePacketToDiscord(packet discord.Packet, info sessionInfo, cache *sessionCache) (discord.Packet, error) {
 	switch packet.Opcode {
 	case discord.GatewayOpHello,
 		discord.GatewayOpHeartbeat,
@@ -445,7 +533,7 @@ func packetToDiscord(packet discord.Packet, info sessionInfo) (discord.Packet, e
 		// passthrough
 		return packet, nil
 	case discord.GatewayOpDispatch:
-		newData, err := eventToDiscord(packet.Event, packet.Data, info)
+		newData, err := translateEventToDiscord(packet.Event, packet.Data, info, cache)
 		if err != nil {
 			return discord.Packet{}, fmt.Errorf("failed to convert event to discord: %w", err)
 		}
@@ -457,7 +545,7 @@ func packetToDiscord(packet discord.Packet, info sessionInfo) (discord.Packet, e
 	}
 }
 
-func (s *session) handleFluxerMsg(msg wsMessage) error {
+func handleFluxerMsg(msg wsMessage, sesh *session) error {
 	if msg.messageType != websocket.TextMessage {
 		return nil
 	}
@@ -466,7 +554,7 @@ func (s *session) handleFluxerMsg(msg wsMessage) error {
 	err := json.Unmarshal(msg.data, &inPacket)
 	if err != nil {
 		// FIXME: this should wait for a response!
-		s.client.write <- wsMessage{
+		sesh.client.write <- wsMessage{
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseUnsupportedData, ""),
 		}
@@ -478,15 +566,15 @@ func (s *session) handleFluxerMsg(msg wsMessage) error {
 		slog.Warn("failed to log fluxer packet", slog.Any("err", err))
 	}
 
-	outPacket, err := packetToDiscord(inPacket, s.info)
+	outPacket, err := translatePacketToDiscord(inPacket, sesh.info, &sesh.cache)
 	if errors.Is(err, errNonConvertiblePacket) {
 		if inPacket.SequenceNum != nil {
 			// NOTE: make sure there is no skipping of sequence numbers
 			// this may generate other warnings, but at least the sequence number the client sends won't be outdated
 			outPacket = discord.Packet{
-				Opcode: discord.GatewayOpDispatch,
+				Opcode:      discord.GatewayOpDispatch,
 				SequenceNum: inPacket.SequenceNum,
-				Event: "FLINE_NON_CONVERTIBLE",
+				Event:       "FLINE_NON_CONVERTIBLE",
 			}
 		} else {
 			return nil
@@ -500,7 +588,7 @@ func (s *session) handleFluxerMsg(msg wsMessage) error {
 		return fmt.Errorf("failed to marshal modified fluxer packet: %w", err)
 	}
 
-	s.client.write <- wsMessage{
+	sesh.client.write <- wsMessage{
 		websocket.TextMessage,
 		newData,
 	}
@@ -514,12 +602,12 @@ func (s *session) run(shutdown <-chan struct{}) {
 	for {
 		select {
 		case msg := <-s.client.read:
-			err := s.handleClientMsg(msg)
+			err := handleClientMsg(msg, s)
 			if err != nil {
 				slog.Warn("error handling client message", slog.Any("err", err))
 			}
 		case msg := <-s.fluxer.read:
-			err := s.handleFluxerMsg(msg)
+			err := handleFluxerMsg(msg, s)
 			if err != nil {
 				slog.Warn("error handling fluxer message", slog.Any("err", err))
 			}
