@@ -2,19 +2,20 @@
 
 A <ins>highly experimental</ins>, work-in-progress API adapter specifically for running Discord bots on Fluxer.
 
-The current goal is to allow Discord bots which only use features available on Fluxer to work smoothly without many changes other than modifying a few URLs in the code.
+The current goal is to allow Discord bots which only use features also available on Fluxer for the most part to work smoothly without many changes other than modifying a few URLs in the code.
 
 You may experience bugs! You will experience bugs! In fact, if there aren't any bugs, that's a bug! Bear in mind that I am just a nerd making this to learn cool stuff and my previous experience with the Fluxer and Discord API is limited.
 
-## Isn't Fluxer's API already compatible with Discord??
+Right now this project is heavily limited by Fluxer lacking interactions.
 
-There certainly are more simularities than differences, but the small differences which break assumptions made by Discord bots and libraries add up. From my testing most libraries can't make it far without throwing an error when connecting directly to the Fluxer API.
+## Usage
 
-Often there are some required properties which libraries reasonably assume exist which Fluxer doesn't provide - and a sensible value can be inferred from context or a placeholder will work well enough.
-There's also properties which are documented to be optional but libraries assume are present - and even properties which are documented to be required but can actually be omitted in the request body.
+First run `go build` to build and then it can be run with `./fline`.
 
-Many of these differences I am documenting [here](./DIFFERENCES.md) in case Fluxer would like to "fix" their API to be the same in some areas (how much of this is intentional I am not sure).
+Environment variables can be provided through the command line or `.env`; you can see which are available in [.env.example](./.env.example). Most of the defaults should already be good enough if you want to use the official instance of Fluxer, but you may want to change the port that is being listened on with `FLINE_LISTEN_ADDR=:1234` (it defaults to 8080).
 
-## Shouldn't you just port bots to use the Fluxer API properly?
+## Why?
 
-That would probably produce better results, but the point of this project is to allow a number of bots to work without much effort.
+Isn't Fluxer's API already compatible with Discord? Well, it is very similar which is nice for a project like this - but in practice the many differences cause things not to work right - especially missing fields.
+
+Porting bots to Fluxer (and taking advantage of Fluxer specific features, more of which will likely come) is probably better, but this project is interesting to me and may be useful to others.
