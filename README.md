@@ -31,6 +31,6 @@ Unfortunately not all libraries have a way to override the URL so you may need t
 
 ## Why?
 
-Isn't Fluxer's API already compatible with Discord? Well, it is very similar which is nice for a project like this - but in practice the many differences cause things not to work right - especially missing fields.
+Isn't Fluxer's API already compatible with Discord? Well, it is very similar which is nice for a project like this - but in practice [the many differences](./DIFFERENCES.md) cause things not to work right - especially missing fields.
 
 Porting bots to Fluxer (and taking advantage of Fluxer specific features, more of which will likely come) is probably better, but this project is interesting to me and may be useful to others.
