@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mime/multipart"
 	"strconv"
 
 	"github.com/TheKodeToad/fline/internal/misc"
@@ -155,7 +156,7 @@ type MessageCreate struct {
 	StickerIDs       []snowflake.ID            `json:"sticker_ids,omitzero"`
 	Files            []multipartx.InMemoryFile `json:"-"`
 	Attachments      []Attachment              `json:"attachments,omitzero"`
-	Flags            int                       `json:"flags,omitempty"`
+	Flags            MessageFlags              `json:"flags,omitempty"`
 	EnforceNonce     *bool                     `json:"enforce_nonce,omitempty"`
 }
 
@@ -203,7 +204,7 @@ func (mc *MessageCreate) UnmarshalForm(form multipartx.InMemoryForm) error {
 				return fmt.Errorf("failed to parse flags form value: %w", err)
 			}
 
-			mc.Flags = flagsInt
+			mc.Flags = MessageFlags(flagsInt)
 		}
 
 		if enforceNonce := form.Value["enforce_nonce"]; len(enforceNonce) != 0 {
@@ -219,6 +220,124 @@ func (mc *MessageCreate) UnmarshalForm(form multipartx.InMemoryForm) error {
 	}
 
 	mc.Files = form.Files
+	return nil
+}
+
+type MessageEdit struct {
+	Content         *string                   `json:"content,omitempty"`
+	Embeds          []Embed                   `json:"embeds,omitzero"`
+	Flags           *MessageFlags             `json:"flags,omitempty"`
+	AllowedMentions *AllowedMentions          `json:"allowed_mentions,omitempty"`
+	Files           []multipartx.InMemoryFile `json:"-"`
+	Attachments     []Attachment              `json:"attachments,omitzero"`
+}
+
+func (me *MessageEdit) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Content         json.RawMessage `json:"content"`
+		Embeds          json.RawMessage `json:"embeds"`
+		Flags           json.RawMessage `json:"flags"`
+		AllowedMentions json.RawMessage `json:"allowed_mentions"`
+		Attachments     json.RawMessage `json:"attachments"`
+	}
+	err := json.Unmarshal(data, &raw)
+	if err != nil {
+		return err
+	}
+
+	// NOTE: we unfortunately need this manual parsing to distinguish between null and undefined
+
+	if string(raw.Content) == "null" {
+		me.Content = misc.New("")
+	} else if raw.Content != nil {
+		err := json.Unmarshal(raw.Content, &me.Content)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into MessageEdit.Content: %w", err)
+		}
+	}
+
+	if string(raw.Embeds) == "null" {
+		me.Embeds = []Embed{}
+	} else if raw.Embeds != nil {
+		err := json.Unmarshal(raw.Embeds, &me.Embeds)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into MessageEdit.Embeds: %w", err)
+		}
+	}
+
+	if string(raw.Flags) == "null" {
+		me.Flags = misc.New(MessageFlags(0))
+	} else if raw.Flags != nil {
+		err := json.Unmarshal(raw.Embeds, &me.Embeds)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into MessageEdit.Flags: %w", err)
+		}
+	}
+
+	if raw.AllowedMentions != nil {
+		err = json.Unmarshal(raw.AllowedMentions, &me.AllowedMentions)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into MessageEdit.AllowedMentions: %w", err)
+		}
+	}
+
+	if string(raw.Attachments) == "null" {
+		me.Attachments = []Attachment{}
+	} else if raw.Attachments != nil {
+		err = json.Unmarshal(raw.Attachments, &me.Attachments)
+		if err != nil {
+			return fmt.Errorf("unmarshalling into MessageEdit.Attachments: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (me *MessageEdit) UnmarshalForm(form multipartx.InMemoryForm) error {
+	if payloadJSON := form.Value["payload_json"]; len(payloadJSON) != 0 {
+		err := json.Unmarshal([]byte(payloadJSON[0]), me)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal payload_json: %w", err)
+		}
+	} else {
+		if content := form.Value["content"]; len(content) != 0 {
+			me.Content = misc.New(content[0])
+		}
+
+		if flags := form.Value["flags"]; len(flags) != 0 {
+			flagsInt, err := strconv.Atoi(flags[0])
+			if err != nil {
+				return fmt.Errorf("failed to parse flags form value: %w", err)
+			}
+
+			me.Flags = misc.New(MessageFlags(flagsInt))
+		}
+	}
+
+	me.Files = form.Files
+	return nil
+}
+
+func (me *MessageEdit) EncodeForm(form *multipart.Writer) error {
+	payloadJSON, err := json.Marshal(me)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload_json: %w", err)
+	}
+
+	form.WriteField("payload_json", string(payloadJSON))
+
+	for _, file := range me.Files {
+		writer, err := form.CreateFormFile(file.FieldName, file.FileName)
+		if err != nil {
+			return fmt.Errorf("failed to add form file: %w", err)
+		}
+
+		_, err = writer.Write(file.Data)
+		if err != nil {
+			return fmt.Errorf("failed to write message file to form: %w", err)
+		}
+	}
+
 	return nil
 }
 

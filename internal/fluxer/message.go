@@ -50,7 +50,7 @@ type MessageCreate struct {
 	StickerIDs       []snowflake.ID            `json:"sticker_ids,omitzero"`
 	Files            []multipartx.InMemoryFile `json:"-"`
 	Attachments      []discord.Attachment      `json:"attachments,omitzero"`
-	Flags            int                       `json:"flags"`
+	Flags            discord.MessageFlags      `json:"flags"`
 	EnforceNonce     *bool                     `json:"enforce_nonce,omitempty"`
 }
 

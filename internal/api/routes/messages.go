@@ -148,6 +148,101 @@ func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
+	router.Method("PATCH", "/{message_id}", api.ProxyHandler[discord.MessageEdit, fluxer.Message]{
+		Conf:   conf,
+		Client: client,
+		Path:   "/channels/{channel_id}/messages/{message_id}",
+		DecodeRequest: func(req *http.Request) (discord.MessageEdit, error) {
+			contentType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
+			if err != nil {
+				return discord.MessageEdit{}, api.ErrInvalidFormBody
+			}
+
+			switch contentType {
+			case "application/json":
+				var edit discord.MessageEdit
+
+				err := json.NewDecoder(req.Body).Decode(&edit)
+				if err != nil {
+					return discord.MessageEdit{}, err
+				}
+
+				return edit, nil
+			case "multipart/form-data":
+				var edit discord.MessageEdit
+
+				reader, err := req.MultipartReader()
+				if err != nil {
+					return discord.MessageEdit{}, fmt.Errorf("failed to create multipart reader: %w", err)
+				}
+
+				form, err := multipartx.ReadInMemory(reader, conf.MaxUploadFiles, conf.MaxUploadFileSize)
+				if errors.Is(err, multipartx.ErrTooManyFiles) ||
+					errors.Is(err, multipartx.ErrFileTooLarge) {
+					return discord.MessageEdit{}, api.ErrInvalidFormBody
+				} else if err != nil {
+					return discord.MessageEdit{}, fmt.Errorf("failed to read multipart form: %w", err)
+				}
+
+				err = edit.UnmarshalForm(form)
+				if err != nil {
+					return discord.MessageEdit{}, api.ErrInvalidFormBody
+				}
+
+				return edit, nil
+			default:
+				// TODO: application/x-www-form-urlencoded is also supported... for some reason
+				return discord.MessageEdit{}, api.ErrInvalidFormBody
+			}
+		},
+		MapRequest: func(inEdit discord.MessageEdit) (any, error) {
+			outCreate, ok := convert.MessageEditToFluxer(inEdit)
+			if !ok {
+				return nil, api.ErrInvalidFormBody
+			}
+
+			return outCreate, nil
+		},
+		EncodeRequest: func(body any, req *http.Request) error {
+			create := body.(discord.MessageEdit)
+			if len(create.Files) != 0 {
+				var data bytes.Buffer
+				writer := multipart.NewWriter(&data)
+
+				err := create.EncodeForm(writer)
+				if err != nil {
+					return fmt.Errorf("failed to encode multipart form: %w", err)
+				}
+
+				err = writer.Close()
+				if err != nil {
+					return fmt.Errorf("failed to finish multipart form: %w", err)
+				}
+
+				fmt.Println(data.String())
+
+				contentType := mime.FormatMediaType("multipart/form-data", map[string]string{
+					"boundary": writer.Boundary(),
+				})
+				req.Header.Set("Content-Type", contentType)
+				req.Body = io.NopCloser(bytes.NewReader(data.Bytes()))
+				return nil
+			} else {
+				data, err := json.Marshal(create)
+				if err != nil {
+					return err
+				}
+
+				req.Header.Set("Content-Type", "application/json")
+				req.Body = io.NopCloser(bytes.NewReader(data))
+				return nil
+			}
+		},
+		MapResponse: func(message fluxer.Message) (any, error) {
+			return convert.MessageToDiscord(message), nil
+		},
+	})
+
 	router.Method("DELETE", "/{message_id}", api.ProxyHandler[any, api.EmptyResponse]{
 		Conf:   conf,
 		Client: client,

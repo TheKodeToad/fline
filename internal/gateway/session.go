@@ -403,7 +403,7 @@ func translateEventToDiscord(name string, payload json.RawMessage, info sessionI
 		}
 
 		outGuild := convert.GuildToDiscord(inGuild)
-		
+
 		if guildEntry, ok := cache.guilds[inGuild.ID]; ok {
 			outGuild.Roles = make([]discord.Role, 0, len(guildEntry.roles))
 			// FIXME: order not deterministic
@@ -468,7 +468,6 @@ func translateEventToDiscord(name string, payload json.RawMessage, info sessionI
 		if err != nil {
 			return json.RawMessage{}, err
 		}
-
 
 		if guildEntry, ok := cache.guilds[del.GuildID]; ok {
 			delete(guildEntry.roles, del.RoleID)

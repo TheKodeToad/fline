@@ -77,8 +77,6 @@ func (u *GuildMemberUpdate) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	*u = GuildMemberUpdate{}
-
 	// NOTE: we unfortunately need this manual parsing to distinguish between null and undefined
 	// fortunately for most of the fields, null is semantically equivilent to specifying the default value
 
@@ -121,6 +119,8 @@ func (u *GuildMemberUpdate) UnmarshalJSON(data []byte) error {
 	if string(raw.ChannelID) == "null" {
 		u.ClearChannel = true
 	} else if raw.ChannelID != nil {
+		u.ClearChannel = false
+
 		err := json.Unmarshal(raw.ChannelID, &u.ChannelID)
 		if err != nil {
 			return fmt.Errorf("unmarshalling into GuildMemberUpdate.ChannelID: %w", err)
