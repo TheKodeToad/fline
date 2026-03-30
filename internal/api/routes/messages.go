@@ -264,15 +264,6 @@ func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
-	router.Method("PUT", "/{message_id}/reactions/{emoji_id}/@me", api.ProxyHandler[any, api.EmptyResponse]{
-		Conf:   conf,
-		Client: client,
-		Path:   "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_id}/@me",
-		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
-			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
-		},
-	})
-
 	router.Method("DELETE", "/{message_id}/reactions", api.ProxyHandler[any, api.EmptyResponse]{
 		Conf:   conf,
 		Client: client,
@@ -282,10 +273,52 @@ func messagesRouter(conf *config.Config, client http.Client) chi.Router {
 		},
 	})
 
+	router.Method("GET", "/{message_id}/reactions/{emoji_id}", api.ProxyHandler[any, []fluxer.UserPartial]{
+		Conf:   conf,
+		Client: client,
+		Path:   "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_id}",
+		DecodeRequest: func(req *http.Request) (any, error) {
+			return req.URL.RawQuery, nil
+		},
+		MapRequest: func(body any) (any, error) {
+			return body, nil
+		},
+		EncodeRequest: func(body any, req *http.Request) error {
+			req.URL.RawQuery = body.(string)
+			return nil
+		},
+		MapResponse: func(inUsers []fluxer.UserPartial) (any, error) {
+			outUsers := make([]discord.User, 0, len(inUsers))
+			for _, user := range inUsers {
+				outUsers = append(outUsers, convert.UserPartialToDiscord(user))
+			}
+
+			return outUsers, nil
+		},
+	})
+
 	router.Method("DELETE", "/{message_id}/reactions/{emoji_id}", api.ProxyHandler[any, api.EmptyResponse]{
 		Conf:   conf,
 		Client: client,
 		Path:   "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_id}",
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
+		},
+	})
+
+	router.Method("PUT", "/{message_id}/reactions/{emoji_id}/@me", api.ProxyHandler[any, api.EmptyResponse]{
+		Conf:   conf,
+		Client: client,
+		Path:   "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_id}/@me",
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
+		},
+	})
+
+	router.Method("DELETE", "/{message_id}/reactions/{emoji_id}/@me", api.ProxyHandler[any, api.EmptyResponse]{
+		Conf:   conf,
+		Client: client,
+		Path:   "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_id}/@me",
 		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
 			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
 		},
