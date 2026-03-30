@@ -4,7 +4,7 @@ A <ins>highly experimental</ins>, work-in-progress API adapter specifically for 
 
 The current goal is to allow Discord bots which only use features also available on Fluxer for the most part to work smoothly without many changes other than modifying a few URLs in the code.
 
-While I have not yet reached this goal, I am happy to have got some functionality from [Zeppelin](https://zeppelin.gg/) and its dashboard working with a few URL changes here and there.
+While I have not yet reached this goal, I am happy to have got some functionality from [Zeppelin](https://zeppelin.gg/) and its dashboard working with a few URL changes and deleted code here and there.
 
 <img width="602" height="751" alt="image" src="https://github.com/user-attachments/assets/d69774e5-a3c7-411b-b882-acf6db1ae86e" />
 
