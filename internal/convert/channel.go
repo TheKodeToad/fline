@@ -5,7 +5,7 @@ import (
 	"github.com/TheKodeToad/fline/internal/fluxer"
 )
 
-func commonChannelTypeSubset(kind discord.ChannelType) bool {
+func IsChannelConvertible(kind discord.ChannelType) bool {
 	switch kind {
 	case discord.ChannelTypeGuildText,
 		discord.ChannelTypeDM,
@@ -19,7 +19,7 @@ func commonChannelTypeSubset(kind discord.ChannelType) bool {
 }
 
 func ChannelToDiscord(channel fluxer.Channel) (discord.Channel, bool) {
-	if !commonChannelTypeSubset(channel.Type) {
+	if !IsChannelConvertible(channel.Type) {
 		return discord.Channel{}, false
 	}
 
@@ -46,4 +46,25 @@ func ChannelToDiscord(channel fluxer.Channel) (discord.Channel, bool) {
 		RateLimitPerUser:     channel.RateLimitPerUser,
 		Recipients:           recipients,
 	}, true
+}
+
+func ChannelCreateToFluxer(create discord.ChannelCreate) fluxer.ChannelCreate {
+	// NOTE: yep, Fluxer just makes this required
+	var kind discord.ChannelType
+	if create.Type != nil {
+		kind = *create.Type
+	}
+
+	return fluxer.ChannelCreate{
+		Name:                 create.Name,
+		Type:                 kind,
+		Topic:                create.Topic,
+		Bitrate:              create.Bitrate,
+		UserLimit:            create.UserLimit,
+		Position:             create.Position,
+		PermissionOverwrites: create.PermissionOverwrites,
+		ParentID:             create.ParentID,
+		NSFW:                 create.NSFW,
+		RTCRegion:            create.RTCRegion,
+	}
 }

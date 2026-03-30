@@ -26,3 +26,18 @@ type Channel struct {
 	LastPinTimestamp     *string                       `json:"last_pin_timestamp,omitempty"`
 	RTCRegion            *string                       `json:"rtc_region"`
 }
+
+type ChannelCreate struct {
+	// NOTE: yep, the type is just required
+	// RateLimitPerUser is also not present but nothing we can do to workaround that without additional requires
+	Name                 string                        `json:"name"`
+	Type                 discord.ChannelType           `json:"type"`
+	Topic                *string                       `json:"topic,omitempty"`
+	Bitrate              *int                          `json:"bitrate,omitempty"`
+	UserLimit            *int                          `json:"user_limit,omitempty"`
+	Position             *int                          `json:"position,omitempty"`
+	PermissionOverwrites []discord.PermissionOverwrite `json:"permission_overwrite,omitzero"`
+	ParentID             *snowflake.ID                 `json:"parent_id,omitempty"`
+	NSFW                 *bool                         `json:"nsfw,omitempty"`
+	RTCRegion            *string                       `json:"rtc_region,omitempty"`
+}

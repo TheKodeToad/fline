@@ -40,3 +40,16 @@ type Channel struct {
 	LastPinTimestamp     *string               `json:"last_pin_timestamp,omitempty"`
 	RTCRegion            *string               `json:"rtc_region"`
 }
+
+type ChannelCreate struct {
+	Name                 string                `json:"name"`
+	Type                 *ChannelType          `json:"type,omitempty"`
+	Topic                *string               `json:"topic,omitempty"`
+	Bitrate              *int                  `json:"bitrate,omitempty"`
+	UserLimit            *int                  `json:"user_limit,omitempty"`
+	Position             *int                  `json:"position,omitempty"`
+	PermissionOverwrites []PermissionOverwrite `json:"permission_overwrite,omitzero"`
+	ParentID             *snowflake.ID         `json:"parent_id,omitempty"`
+	NSFW                 *bool                 `json:"nsfw,omitempty"`
+	RTCRegion            *string               `json:"rtc_region,omitempty"`
+}

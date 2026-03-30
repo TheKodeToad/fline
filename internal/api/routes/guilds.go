@@ -1,6 +1,7 @@
 package apiroutes
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"slices"
@@ -23,6 +24,27 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 		Path:   "/guilds/{guild_id}",
 		MapResponse: func(guild fluxer.Guild) (any, error) {
 			return convert.GuildToDiscord(guild), nil
+		},
+	})
+
+	router.Method("POST", "/{guild_id}/channels", api.ProxyHandler[discord.ChannelCreate, fluxer.Channel]{
+		Conf:   conf,
+		Client: client,
+		Path:   "/guilds/{guild_id}/channels",
+		MapRequest: func(create discord.ChannelCreate) (any, error) {
+			if create.Type != nil && !convert.IsChannelConvertible(*create.Type) {
+				return nil, api.ErrInvalidFormBody
+			}
+
+			return convert.ChannelCreateToFluxer(create), nil
+		},
+		MapResponse: func(inChannel fluxer.Channel) (any, error) {
+			outChannel, ok := convert.ChannelToDiscord(inChannel)
+			if !ok {
+				return nil, errors.New("bug: created channel not convertible")
+			}
+
+			return outChannel, nil
 		},
 	})
 
@@ -88,9 +110,9 @@ func guildsRouter(conf *config.Config, client http.Client) chi.Router {
 	}
 
 	router.Method("PATCH", "/{guild_id}/members/{user_id}", api.ProxyHandler[memberUpdate, fluxer.GuildMember]{
-		Conf:          conf,
-		Client:        client,
-		Path:          "/guilds/{guild_id}/members/{user_id}",
+		Conf:   conf,
+		Client: client,
+		Path:   "/guilds/{guild_id}/members/{user_id}",
 		DecodeRequest: func(req *http.Request) (memberUpdate, error) {
 			update, err := api.DecodeOptionalRequestJSON[discord.GuildMemberUpdate](req)
 			if err != nil {

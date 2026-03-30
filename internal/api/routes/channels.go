@@ -1,6 +1,8 @@
 package apiroutes
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 
 	"github.com/TheKodeToad/fline/internal/api"
@@ -31,6 +33,45 @@ func channelsRouter(conf *config.Config, client http.Client) chi.Router {
 			}
 
 			return outChannel, nil
+		},
+	})
+
+	router.Method("PATCH", "/{channel_id}", api.ProxyHandler[any, fluxer.Channel]{
+		Conf:   conf,
+		Client: client,
+		DecodeRequest: func(req *http.Request) (any, error) {
+			return io.ReadAll(req.Body)
+		},
+		MapRequest: func(body any) (any, error) {
+			return body, nil
+		},
+		EncodeRequest: func(body any, req *http.Request) error {
+			req.Body = io.NopCloser(bytes.NewReader(body.([]byte)))
+			return nil
+		},
+		MapResponse: func(inChannel fluxer.Channel) (any, error) {
+			outChannel, ok := convert.ChannelToDiscord(inChannel)
+			if !ok {
+				// FIXME: better behaviour
+				return nil, api.Error{
+					APIError: discord.APIError{
+						Code:    discord.APIErrorUnknownChannel,
+						Message: "This Channel Uh... Totally Never Existed",
+					},
+					Status: http.StatusNotFound,
+				}
+			}
+
+			return outChannel, nil
+		},
+	})
+
+	router.Method("DELETE", "/{channel_id}", api.ProxyHandler[any, api.EmptyResponse]{
+		Conf:   conf,
+		Client: client,
+		Path:   "/channels/{channel_id}",
+		DecodeResponse: func(resp *http.Response) (api.EmptyResponse, error) {
+			return api.ExpectEmptyResponse(resp, http.StatusNoContent)
 		},
 	})
 
