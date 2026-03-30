@@ -317,7 +317,7 @@ func translateEventToDiscord(name string, payload json.RawMessage, info sessionI
 		return json.Marshal(outEvent)
 	case "RESUMED":
 		return payload, nil
-	case "CHANNEL_CREATE", "CHANNEL_UPDATE":
+	case "CHANNEL_CREATE", "CHANNEL_UPDATE", "CHANNEL_DELETE":
 		var inChannel fluxer.Channel
 
 		err := json.Unmarshal(payload, &inChannel)
