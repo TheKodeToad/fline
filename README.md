@@ -2,9 +2,11 @@
 
 A <ins>highly experimental</ins>, work-in-progress API adapter specifically for running Discord bots on Fluxer.
 
-[Join Us](https://fluxer.gg/Wq2YYT5E)
-
 The current goal is to allow Discord bots which only use features also available on Fluxer for the most part to work smoothly without many changes other than modifying a few URLs in the code.
+
+While I have not yet reached this goal, I am happy to have got some functionality from [Zeppelin](https://zeppelin.gg/) and its dashboard working with a few URL changes here and there.
+
+<img width="602" height="751" alt="image" src="https://github.com/user-attachments/assets/d69774e5-a3c7-411b-b882-acf6db1ae86e" />
 
 You may experience bugs! You will experience bugs! In fact, if there aren't any bugs, that's a bug! Bear in mind that I am just a nerd making this to learn cool stuff and my previous experience with the Fluxer and Discord API is limited.
 
