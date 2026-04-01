@@ -1,6 +1,6 @@
 # Fline
 
-A <ins>highly experimental</ins>, work-in-progress API adapter specifically for running Discord bots on Fluxer.
+A <ins>highly experimental</ins>, work-in-progress API adapter (with some possible glaring issues) specifically for running Discord bots on Fluxer.
 
 The current goal is to allow Discord bots which only use features also available on Fluxer for the most part to work smoothly without many changes other than modifying a few URLs in the code.
 
