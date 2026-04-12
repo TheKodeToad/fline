@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> I have moved on to working a [Go library for Fluxer from scratch](https://github.com/fluxer-flo/flo) (should be available at some point), and this project seems like it's probably higher effort and has worse results than porting bots so I will likely not continue
+
 # Fline
 
 A <ins>highly experimental</ins>, work-in-progress API adapter (with some possible glaring issues) specifically for running Discord bots on Fluxer.
