@@ -48,16 +48,17 @@ GET `guilds/{guild_id}`
 PATCH `guilds/{guild_id}/members/{user_id}`
 - `nick` and `communication_disabled_until` cannot be empty strings to reset - they must be null.
 - The `roles` must all be valid otherwise `MISSING_PERMISSIONS` will be returned - unlike Discord which just filters out invalid IDs.
+- `timeout_reason` is a field which can be set separately to `X-Audit-Log-Reason`... for some reason.
+
+GET `guilds/{guild_id}/bans/{user_id}`
+- Not a thing - you have to look up all bans :)
 
 POST `guilds/{guild_id}/bans/{user_id}`
 - The audit log reason (`X-Audit-Log-Reason` header) is separate from the actual reason stored in the entry (`reason` property).
 
-GET `users/{user_id}`:
-- If `{user_id}` does not correspond to a real user it responds with DeletedUser#0000 with the provided ID unlike Discord which responds with the error message `Unknown User`.
-
 ## Gateway
 
-Fluxer doesn't seem to support sharding apart from including some related constants and including `shards` as `1` in the gateway info endpoint for compatibility with Discord libs.
+Fluxer doesn't support sharding apart from including some related constants and including `shards` as `1` in the gateway info endpoint for compatibility with Discord libs.
 
 Presence:
 - Instead of `activities`, Fluxer has a single `custom_status` value.
