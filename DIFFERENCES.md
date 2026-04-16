@@ -60,6 +60,7 @@ GET `guilds/{guild_id}/bans/{user_id}`
 POST `guilds/{guild_id}/bans/{user_id}`
 - The audit log reason (`X-Audit-Log-Reason` header) is separate from the actual reason stored in the entry (`reason` property).
 - `delete_message_seconds` does not exist - only `delete_message_days`
+- `ban_duration_seconds` is present rendering temp ban functionality in bots less useful (note that currently it only supports preset durations but [this is likely to change](https://web.fluxer.app/channels/1427764813854588940/1483532018185537313/1493711258981880981))
 
 ## Gateway
 
@@ -75,3 +76,9 @@ Presence:
 
 `GUILD_CREATE` event:
 - Most of the guild's properties are within `properties`.
+
+`GUILD_MEMBER_REMOVE`, `GUILD_BAN_ADD`, `GUILD_BAN_REMOVE` event:
+- User is just `{"id": id}`
+
+`MESSAGE_DELETE` event:
+- contains `content`, `author_id` and `member`
