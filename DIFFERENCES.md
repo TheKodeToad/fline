@@ -34,6 +34,7 @@ GET `applications/@me`:
 POST `channels/{channel_id}/messages`
 - On Discord, omitting the required property on `footer`, `image`, `thumbnail` or `author` does not yield an error response - the property with the missing field is ignored instead. Fluxer does not replicate this.
 - With a multipart body, only `payload_json` and `files[n]` is supported - and the former is required. While many (most?) implementations only use these, Discord also allows the rest of the top-level non-object properties to be set. You can even have multiple `sticker_ids` by specifying it multiple times. Discord also doesn't require attachment metadata, while Fluxer does, requiring you to specify the filenames again.
+- `enforce_nonce` is not supported, neither is `fail_if_not_exists`.
 
 PATCH `channels/{channel_id}/messages/{message_id}`:
 - Same differences as sending messages apply.
@@ -45,6 +46,9 @@ POST `channels/{channel_id}/messages/bulk_delete`
 GET `guilds/{guild_id}`
 - `roles`, `emojis` and `stickers` are missing
 
+POST `guilds/{guild_id}/channels`
+- `type` is required, rather than defaulting to text like Discord
+
 PATCH `guilds/{guild_id}/members/{user_id}`
 - `nick` and `communication_disabled_until` cannot be empty strings to reset - they must be null.
 - The `roles` must all be valid otherwise `MISSING_PERMISSIONS` will be returned - unlike Discord which just filters out invalid IDs.
@@ -55,6 +59,7 @@ GET `guilds/{guild_id}/bans/{user_id}`
 
 POST `guilds/{guild_id}/bans/{user_id}`
 - The audit log reason (`X-Audit-Log-Reason` header) is separate from the actual reason stored in the entry (`reason` property).
+- `delete_message_seconds` does not exist - only `delete_message_days`
 
 ## Gateway
 
